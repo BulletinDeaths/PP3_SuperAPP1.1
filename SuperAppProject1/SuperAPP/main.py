@@ -1,13 +1,12 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 
-# Импорты теперь идут из подпакетов SuperApp
-from SuperApp.ui.main_window import MainWindow
-from SuperApp.utils.currency_widget import CurrencyWidget
-from SuperApp.utils.stub_widget_2 import StubWidget as StubWidget2
-from SuperApp.utils.stub_widget_3 import StubWidget as StubWidget3
-from SuperApp.utils.stub_widget_4 import StubWidget as StubWidget4
-from SuperApp.utils.stub_widget_5 import StubWidget as StubWidget5
+from SuperAppProject1.SuperAPP.ui.main_window import MainWindow
+from SuperAppProject1.SuperAPP.utils.currency_widget import CurrencyWidget
+from SuperAppProject1.SuperAPP.utils.stub_widget_2 import StubWidget as StubWidget2
+from SuperAppProject1.SuperAPP.utils.stub_widget_3 import StubWidget as StubWidget3
+from SuperAppProject1.SuperAPP.utils.stub_widget_4 import StubWidget as StubWidget4
+from SuperAppProject1.SuperAPP.utils.stub_widget_5 import StubWidget as StubWidget5
 
 
 def main():
