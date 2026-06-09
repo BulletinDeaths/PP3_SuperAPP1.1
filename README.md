@@ -37,8 +37,8 @@ SuperAppProject1/
 ``` bash
 python -m venv .venv
 ```
-
 (Активируйте окружение:)
+
 Windows: `.venv\Scripts\activate`
 
 Linux/macOS: `source .venv/bin/activate`
