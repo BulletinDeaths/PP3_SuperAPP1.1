@@ -256,7 +256,7 @@ class CurrencyWidget(QWidget):
         )
 
         profile = self.plot_view.page().profile()
-        # Устанавливаем политику кэширования на "не использовать кэш"
+        # меням кэш на "не использовать кэш"
         profile.setCachePath("")
         profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.NoCache)
 
