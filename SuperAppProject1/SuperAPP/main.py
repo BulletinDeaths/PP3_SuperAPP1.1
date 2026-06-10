@@ -17,8 +17,10 @@ def main():
     # Добавляем первую реализованную утилиту
     window.add_utility_tab(CurrencyWidget(), "Курсы валют")
 
-    # Добавляем заглушки для остальных утилит
+    # Добавляем вторую реализованную утилиту
     window.add_utility_tab(BudgetWidget(), "Бюджет и накопления")
+
+    # Заглушки для остальных утилит
     window.add_utility_tab(StubWidget3(3), "Утилита №3")
     window.add_utility_tab(StubWidget4(4), "Утилита №4")
     window.add_utility_tab(StubWidget5(5), "Утилита №5")

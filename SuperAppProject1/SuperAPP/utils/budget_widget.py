@@ -15,7 +15,6 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
-# БД всегда рядом с этим файлом — независимо от рабочей директории
 _DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_data.db')
 
 DEFAULT_INCOME_CATEGORIES  = ["Зарплата", "Стипендия", "Подработка", "Фриланс", "Прочий доход"]
@@ -111,14 +110,11 @@ class BudgetWidget(QWidget):
 
         self.refresh_data()
 
-    # ================================================================
     # БД
-    # ================================================================
     def init_db(self) -> None:
         self.conn = sqlite3.connect(_DB_PATH)
         self.cursor = self.conn.cursor()
 
-        # --- transactions ---
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,7 +134,6 @@ class BudgetWidget(QWidget):
         needs_recreate = False
         if row:
             ddl = (row[0] or '').lower()
-            # старая схема не имеет составного уникального ключа (name, type)
             if 'unique(name, type)' not in ddl and 'unique(name,type)' not in ddl:
                 needs_recreate = True
         if needs_recreate:
@@ -166,7 +161,6 @@ class BudgetWidget(QWidget):
                 )
             ''')
 
-        # --- goals: колонка saved (не current — зарезервировано в SQLite) ---
         self.cursor.execute(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='goals'"
         )
@@ -184,7 +178,6 @@ class BudgetWidget(QWidget):
                         saved  REAL
                     )
                 ''')
-                # копируем данные — колонка могла называться current или target_amount и т.д.
                 self.cursor.execute("PRAGMA table_info(_goals_bak)")
                 old_cols = [c[1] for c in self.cursor.fetchall()]
                 saved_src = 'saved' if 'saved' in old_cols else ('current' if 'current' in old_cols else None)
@@ -219,9 +212,7 @@ class BudgetWidget(QWidget):
                 )
             self.conn.commit()
 
-    # ================================================================
-    # ВКЛАДКА 1: ОПЕРАЦИИ
-    # ================================================================
+    # МИНИ-ВКЛАДКА 1: ОПЕРАЦИИ
     def build_operations_tab(self) -> None:
         layout = self.tab_operations.layout()
 
@@ -397,9 +388,7 @@ class BudgetWidget(QWidget):
             self.conn.commit()
             self.refresh_data()
 
-    # ================================================================
-    # ВКЛАДКА 2: ДИАГРАММА
-    # ================================================================
+    # МИНИ-ВКЛАДКА 2: ДИАГРАММА
     def build_chart_tab(self) -> None:
         layout = self.tab_chart.layout()
 
@@ -427,7 +416,6 @@ class BudgetWidget(QWidget):
         ctrl.addStretch()
         layout.addLayout(ctrl)
 
-        # Изолированный профиль без сетевых запросов — убирает SSL ошибки
         self._web_profile = QWebEngineProfile("budget_chart_profile", self)
         self._web_profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.NoCache)
 
@@ -487,7 +475,6 @@ class BudgetWidget(QWidget):
             template='plotly_white',
         )
 
-        # Берём plotly.min.js из установленного пакета — без сети, без файлов
         import plotly as _plotly_pkg
         plotly_js_path = os.path.join(
             os.path.dirname(_plotly_pkg.__file__), 'package_data', 'plotly.min.js'
@@ -513,9 +500,7 @@ class BudgetWidget(QWidget):
             )
             self.chart_view.setHtml(html)
 
-    # ================================================================
-    # ВКЛАДКА 3: ЦЕЛИ НАКОПЛЕНИЙ
-    # ================================================================
+    # МИНИ-ВКЛАДКА 3: ЦЕЛИ НАКОПЛЕНИЙ
     def build_goals_tab(self) -> None:
         layout = self.tab_goals.layout()
 
@@ -644,9 +629,7 @@ class BudgetWidget(QWidget):
             self.conn.commit()
             self.refresh_goals()
 
-    # ================================================================
     # ОБНОВЛЕНИЕ ДАННЫХ
-    # ================================================================
     def refresh_data(self) -> None:
         try:
             self.update_balance()
@@ -675,8 +658,6 @@ class BudgetWidget(QWidget):
 
         for row_idx, row in enumerate(rows):
             self.tbl_history.insertRow(row_idx)
-            # row: (id, date, type, category, amount, comment)
-            # таблица: col0=date col1=type col2=category col3=amount col4=comment col5=id(скрыт)
             for col_idx, db_idx in enumerate([1, 2, 3, 4, 5]):
                 value = row[db_idx]
                 item_text = str(value) if value is not None else ""

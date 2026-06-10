@@ -39,7 +39,6 @@ class CurrencyWidget(QWidget):
             'CHF': 'R01775'
         }
 
-        # Заполняем
         currencies = ['RUB', 'USD', 'EUR', 'CNY', 'GBP', 'JPY', 'CHF']
         self.from_currency.addItems(currencies)
         self.to_currency.addItems(currencies)
@@ -70,7 +69,7 @@ class CurrencyWidget(QWidget):
         # 1. Очищаем статус-листу
         self.status_label.clear()
 
-        # 2. Удаляем старый QWebEngineView из макета, если он существует
+        # 2. Удаляем старый из макета, если он существует
         if hasattr(self, 'plot_view'):
             self.layout.removeWidget(self.plot_view)
 
@@ -156,7 +155,7 @@ class CurrencyWidget(QWidget):
             self.create_and_display_plot(df, code_from, code_to, date1, date2)
 
         except requests.RequestException as e:
-            # Если произошла ошибка, нам все равно нужно создать пустой plot_view,
+            # Если произошла ошибка, создать пустой plot_view,
             self.plot_view = QWebEngineView()
             self.layout.addWidget(self.plot_view)
 
@@ -248,7 +247,7 @@ class CurrencyWidget(QWidget):
             margin=dict(l=60, r=40, t=60, b=50)
         )
 
-        # Генерирует HTML с правильными настройками
+        # Генерирует HTML
         html_content = fig.to_html(
             full_html=True,
             include_plotlyjs='cdn',
