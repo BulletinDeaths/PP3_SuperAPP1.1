@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import tempfile
 
 import plotly.graph_objs as go
 import plotly.io as pio
@@ -85,7 +84,6 @@ class BudgetWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Утилита: Бюджет и накопления")
-        self._chart_tmp = None
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(8, 8, 8, 8)
@@ -489,29 +487,31 @@ class BudgetWidget(QWidget):
             template='plotly_white',
         )
 
-        # Пишем во временный файл рядом с БД — обходим лимит setHtml (~2 MB)
-        html = pio.to_html(
-            fig,
-            full_html=True,
-            include_plotlyjs='inline',
-            config={'responsive': True, 'displayModeBar': False},
+        # Берём plotly.min.js из установленного пакета — без сети, без файлов
+        import plotly as _plotly_pkg
+        plotly_js_path = os.path.join(
+            os.path.dirname(_plotly_pkg.__file__), 'package_data', 'plotly.min.js'
         )
-
-        if self._chart_tmp and os.path.exists(self._chart_tmp):
-            try:
-                os.remove(self._chart_tmp)
-            except OSError:
-                pass
-
-        tmp_dir = os.path.dirname(_DB_PATH)
-        tmp = tempfile.NamedTemporaryFile(
-            mode='w', suffix='.html', delete=False,
-            dir=tmp_dir, encoding='utf-8'
-        )
-        tmp.write(html)
-        tmp.close()
-        self._chart_tmp = tmp.name
-        self.chart_view.setUrl(QUrl.fromLocalFile(self._chart_tmp))
+        fig_json = fig.to_json()
+        if os.path.isfile(plotly_js_path):
+            js_url = QUrl.fromLocalFile(plotly_js_path).toString()
+            html = (
+                '<!DOCTYPE html><html><head><meta charset="utf-8">'
+                f'<script src="{js_url}"></script>'
+                '</head><body style="margin:0;padding:0;">'
+                '<div id="chart" style="width:100%;height:100vh;"></div>'
+                '<script>'
+                f'var fig={fig_json};'
+                'Plotly.newPlot("chart",fig.data,fig.layout,{responsive:true,displayModeBar:false});'
+                '</script></body></html>'
+            )
+            self.chart_view.setHtml(html, QUrl.fromLocalFile(plotly_js_path))
+        else:
+            html = pio.to_html(
+                fig, full_html=True, include_plotlyjs='inline',
+                config={'responsive': True, 'displayModeBar': False},
+            )
+            self.chart_view.setHtml(html)
 
     # ================================================================
     # ВКЛАДКА 3: ЦЕЛИ НАКОПЛЕНИЙ
