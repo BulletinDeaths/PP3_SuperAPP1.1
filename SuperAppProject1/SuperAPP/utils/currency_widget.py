@@ -20,7 +20,6 @@ class Loader(QObject):
         self.view.loadFinished.connect(self.on_load_finished)
 
     def on_load_finished(self, success):
-        # Сигнал испускается всегда, когда загрузка завершена (успех или нет)
         self.finished.emit()
 
 
@@ -96,13 +95,11 @@ class CurrencyWidget(QWidget):
         self.layout.addWidget(self.status_label)
 
         # --- Инициализация атрибутов ---
-        self.is_loading = False  # Флаг для блокировки кнопки
+        self.is_loading = False
 
-        # Создаем виджет для графика и его "загрузчик"
         self.plot_view = QWebEngineView()
         self.plot_view.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
 
-        # Создаем объект Loader и связываем его сигнал с методом сброса флага
         self._loader = Loader(self.plot_view)
         self._loader.finished.connect(self._on_plot_loaded)
 
@@ -156,13 +153,12 @@ class CurrencyWidget(QWidget):
         # 2. Обновляем статус
         self.status_label.setText("Загрузка данных...")
         self.status_label.setStyleSheet("color: blue;")
-        QApplication.processEvents()  # Принудительно обновляем UI
+        QApplication.processEvents()
 
         df = None
 
         try:
             # --- Блок получения данных ---
-            # Получаем данные для исходной валюты (От:)
             if code_from != 'RUB':
                 code_from_real = self.currency_codes[code_from]
                 url = f"https://www.cbr.ru/scripts/XML_dynamic.asp?date_req1={date1}&date_req2={date2}&VAL_NM_RQ={code_from_real}"
