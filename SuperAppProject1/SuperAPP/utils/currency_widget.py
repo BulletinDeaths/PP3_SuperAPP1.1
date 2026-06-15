@@ -200,7 +200,6 @@ class CurrencyWidget(QWidget):
             df = df.sort_values('Date').reset_index(drop=True)
 
             # --- Блок отображения графика ---
-            # Генерируем HTML и загружаем его в виджет.
             html_content = self._generate_plot_html(df, code_from, code_to)
             self._pending_status = (
                 f"✅ График построен: {code_from}/{code_to}, "
