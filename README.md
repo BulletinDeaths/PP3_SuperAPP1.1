@@ -35,14 +35,14 @@ SuperAppProject1/
 │   │   ├── stub_widget_4.py    # Утилита №4
 │   │   ├── stub_widget_5.py    # Утилита №5
 │   │   └──habit_tracker_model.py 
-│   │
-├── data/
-│   └── habits.json 
+│   ├── data/
+│   │   └── habits.json 
 │   │
 ├── tests/
 │   └── test_habit_tracker.py 
 │   │
 └── requirements.txt
+
 ```
 ---
 
