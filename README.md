@@ -17,14 +17,32 @@
 
 ```
 SuperAppProject1/
-├── SuperApp/               # Основной пакет приложения
+├── SuperAPP/  # Основной пакет приложения
 │   ├── __init__.py
-│   ├── main.py             # Точка входа
-│   ├── core/               # Логика приложения
-│   ├── ui/                 # Графический интерфейс
-│   └── utils/              # Утилиты (функциональные модули)
-├── requirements.txt        # Файл с зависимостями
-└── README.md               # Текущий файл
+│   ├── main.py  # Точка входа
+│   ├── core/
+│   │   ├── __init__.py
+│   │   └── navigation.py  # Логика переключения вкладок
+│   ├── ui/
+│   │   ├── __init__.py
+│   │   ├── main_window.py  # Главное окно
+│   │   └── base_widget.py  # Базовый класс для всех утилит
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── currency_widget.py  # Утилита №1
+│   │   ├── budget_widget.py    # Утилита №2
+│   │   ├── habit_tracker_widget.py     # Утилита №3
+│   │   ├── stub_widget_4.py    # Утилита №4
+│   │   ├── stub_widget_5.py    # Утилита №5
+│   │   └──habit_tracker_model.py 
+│   │
+├── data/
+│   └── habits.json 
+│   │
+├── tests/
+│   └── test_habit_tracker.py 
+│   │
+└── requirements.txt
 ```
 ---
 
