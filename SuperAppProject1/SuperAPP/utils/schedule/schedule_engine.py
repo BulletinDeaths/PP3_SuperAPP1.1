@@ -4,14 +4,29 @@ from typing import List, Dict, Optional
 
 class Lesson:
     def __init__(self, name: str, day_of_week: str, start_time: str, end_time: str,
-                 lesson_type: str = "Лекция", room: str = "Не указано"):
+                 lesson_type: str = "Лекция", room: str = ""):
         self.name = name
         self.day_of_week = day_of_week
-        self.start_time = start_time
-        self.end_time = end_time
+        self.start_time = self._normalise_time(start_time)
+        self.end_time   = self._normalise_time(end_time)
         self.lesson_type = lesson_type
         self.room = room
         self.status = "Запланировано"
+
+    @staticmethod
+    def _normalise_time(t: str) -> str:
+        """Приводит любой формат ЧЧ:ММ / Ч:ММ к 'HH:MM' с ведущим нулём."""
+        t = t.strip()
+        for fmt in ("%H:%M", "%I:%M %p", "%I:%M"):
+            try:
+                return datetime.datetime.strptime(t, fmt).strftime("%H:%M")
+            except ValueError:
+                pass
+        # Последняя попытка — разобрать вручную
+        if ":" in t:
+            h, m = t.split(":", 1)
+            return f"{int(h):02d}:{int(m.split()[0]):02d}"
+        raise ValueError(f"Неверный формат времени: '{t}'")
 
     def to_dict(self) -> Dict:
         return {
@@ -21,111 +36,129 @@ class Lesson:
             "end_time": self.end_time,
             "lesson_type": self.lesson_type,
             "room": self.room,
-            "status": self.status
+            "status": self.status,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict):
-        return cls(
-            name=data["name"],
-            day_of_week=data["day_of_week"],
-            start_time=data["start_time"],
-            end_time=data["end_time"],
-            lesson_type=data.get("lesson_type", "Лекция"),
-            room=data.get("room", "Не указано"),
-        )
+    def from_dict(cls, data: Dict) -> "Lesson":
+        obj = cls.__new__(cls)
+        obj.name        = data["name"]
+        obj.day_of_week = data["day_of_week"]
+        obj.start_time  = cls._normalise_time(data["start_time"])
+        obj.end_time    = cls._normalise_time(data["end_time"])
+        obj.lesson_type = data.get("lesson_type", "Лекция")
+        obj.room        = data.get("room", "")
+        obj.status      = data.get("status", "Запланировано")
+        return obj
 
 
 class ScheduleEngine:
-    VALID_DAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    VALID_DAYS = [
+        "Понедельник", "Вторник", "Среда", "Четверг",
+        "Пятница", "Суббота", "Воскресенье",
+    ]
+    NIGHT_START = datetime.time(20, 0)
+    DAY_START   = datetime.time(8, 0)
 
     def __init__(self, storage):
         self.storage = storage
-        self.lessons = self.storage.load_data()
+        self.lessons: List[Dict] = self.storage.load_data()
 
-    def _is_valid_time(self, time_str: str) -> bool:
-        """Принимает форматы HH:MM и H:MM"""
-        for fmt in ("%H:%M", "%I:%M"):
-            try:
-                datetime.datetime.strptime(time_str, fmt)
-                return True
-            except ValueError:
-                pass
-        return False
+    # ------------------------------------------------------------------ helpers
+    @staticmethod
+    def _to_time(s: str) -> datetime.time:
+        return datetime.datetime.strptime(s, "%H:%M").time()
 
-    def _parse_time(self, time_str: str) -> datetime.datetime:
-        """Парсит время в форматах HH:MM и H:MM"""
-        for fmt in ("%H:%M", "%I:%M"):
-            try:
-                return datetime.datetime.strptime(time_str, fmt)
-            except ValueError:
-                pass
-        raise ValueError(f"Неверный формат времени: {time_str}")
+    def _validate_new_lesson_time(self, start: str, end: str) -> None:
+        """Проверяет только новое занятие (не трогает существующие)."""
+        t_start = self._to_time(start)
+        t_end   = self._to_time(end)
 
-    def _times_overlap(self, start1, end1, start2, end2) -> bool:
-        """Проверяет пересечение двух интервалов.
-        start1/end1 — новое занятие (проверяется на ночь).
-        start2/end2 — существующее (только пересечение, без проверки на ночь)."""
+        if t_end <= t_start:
+            raise ValueError("Время окончания должно быть позже времени начала.")
 
-        t_start1 = self._parse_time(start1)
-        t_end1   = self._parse_time(end1)
-        t_start2 = self._parse_time(start2)
-        t_end2   = self._parse_time(end2)
+        if t_start < self.DAY_START or t_start >= self.NIGHT_START:
+            raise ValueError("Время начала занятия должно быть в диапазоне 08:00–19:59.")
 
-        night_start = datetime.datetime.strptime("20:00", "%H:%M")
-        night_end   = datetime.datetime.strptime("08:00", "%H:%M")
+        if t_end <= self.DAY_START or t_end > self.NIGHT_START:
+            raise ValueError("Время окончания занятия должно быть в диапазоне 08:01–20:00.")
 
-        def is_night(t: datetime.datetime) -> bool:
-            return t >= night_start or t < night_end
-
-        # Проверяем ночной запрет только для нового занятия
-        if is_night(t_start1) or is_night(t_end1):
-            raise ValueError("Нельзя создавать занятия в период с 20:00 до 08:00!")
-
-        # Если существующее занятие имеет некорректное время — пропускаем его
-        if t_end1 <= t_start1:
-            raise ValueError("Время окончания должно быть позже времени начала!")
-        if t_end2 <= t_start2:
-            return False  # Некорректное существующее — не блокируем создание
-
-        latest_start  = max(t_start1, t_start2)
-        earliest_end  = min(t_end1,   t_end2)
-        return (earliest_end - latest_start).total_seconds() > 0
-
-    def create_lesson(self, lesson: Lesson) -> bool:
-        if not all([lesson.name, lesson.day_of_week, lesson.start_time, lesson.end_time]):
+    @staticmethod
+    def _overlaps(s1: str, e1: str, s2: str, e2: str) -> bool:
+        """True если интервалы [s1,e1) и [s2,e2) пересекаются."""
+        a = datetime.datetime.strptime(s1, "%H:%M")
+        b = datetime.datetime.strptime(e1, "%H:%M")
+        c = datetime.datetime.strptime(s2, "%H:%M")
+        d = datetime.datetime.strptime(e2, "%H:%M")
+        # Пропускаем существующие с некорректным временем
+        if b <= a or d <= c:
             return False
+        return max(a, c) < min(b, d)
+
+    # ------------------------------------------------------------------ CRUD
+    def create_lesson(self, lesson: Lesson) -> bool:
+        if not lesson.name.strip():
+            raise ValueError("Название предмета не может быть пустым.")
 
         if lesson.day_of_week not in self.VALID_DAYS:
-            return False
+            raise ValueError(f"Неверный день недели: '{lesson.day_of_week}'.")
 
-        if not (self._is_valid_time(lesson.start_time) and self._is_valid_time(lesson.end_time)):
-            return False
+        # Нормализация (на случай, если виджет передал нестандартный формат)
+        start = Lesson._normalise_time(lesson.start_time)
+        end   = Lesson._normalise_time(lesson.end_time)
 
+        self._validate_new_lesson_time(start, end)
+
+        # Проверка пересечений ТОЛЬКО внутри того же дня недели
         for existing in self.lessons:
-            existing_lesson = Lesson.from_dict(existing)
-            if existing_lesson.day_of_week == lesson.day_of_week:
-                # ValueError (ночное время) пробрасывается наверх в виджет
-                if self._times_overlap(lesson.start_time, lesson.end_time,
-                                       existing_lesson.start_time, existing_lesson.end_time):
-                    raise ValueError(
-                        f"Занятие пересекается с '{existing_lesson.name}' "
-                        f"({existing_lesson.start_time}–{existing_lesson.end_time})"
-                    )
+            if existing["day_of_week"] != lesson.day_of_week:
+                continue
+            ex_start = Lesson._normalise_time(existing["start_time"])
+            ex_end   = Lesson._normalise_time(existing["end_time"])
+            if self._overlaps(start, end, ex_start, ex_end):
+                raise ValueError(
+                    f"Пересечение с '{existing['name']}' "
+                    f"({ex_start}–{ex_end}) в {lesson.day_of_week}."
+                )
 
+        lesson.start_time = start
+        lesson.end_time   = end
         self.lessons.append(lesson.to_dict())
         self.storage.save_data(self.lessons)
         return True
 
-    def get_lessons_for_day(self, day_of_week: str) -> List[Lesson]:
-        return [Lesson.from_dict(l) for l in self.lessons if l["day_of_week"] == day_of_week]
+    def update_lesson(self, index: int, updated: Lesson) -> bool:
+        if not (0 <= index < len(self.lessons)):
+            return False
 
-    def update_lesson(self, index: int, updated_lesson: Lesson) -> bool:
-        if 0 <= index < len(self.lessons):
-            self.lessons[index] = updated_lesson.to_dict()
-            self.storage.save_data(self.lessons)
-            return True
-        return False
+        if not updated.name.strip():
+            raise ValueError("Название предмета не может быть пустым.")
+
+        if updated.day_of_week not in self.VALID_DAYS:
+            raise ValueError(f"Неверный день недели: '{updated.day_of_week}'.")
+
+        start = Lesson._normalise_time(updated.start_time)
+        end   = Lesson._normalise_time(updated.end_time)
+        self._validate_new_lesson_time(start, end)
+
+        for i, existing in enumerate(self.lessons):
+            if i == index:
+                continue
+            if existing["day_of_week"] != updated.day_of_week:
+                continue
+            ex_start = Lesson._normalise_time(existing["start_time"])
+            ex_end   = Lesson._normalise_time(existing["end_time"])
+            if self._overlaps(start, end, ex_start, ex_end):
+                raise ValueError(
+                    f"Пересечение с '{existing['name']}' "
+                    f"({ex_start}–{ex_end}) в {updated.day_of_week}."
+                )
+
+        updated.start_time = start
+        updated.end_time   = end
+        self.lessons[index] = updated.to_dict()
+        self.storage.save_data(self.lessons)
+        return True
 
     def delete_lesson(self, index: int) -> bool:
         if 0 <= index < len(self.lessons):
@@ -139,3 +172,23 @@ class ScheduleEngine:
             self.lessons[index]["status"] = status
             self.storage.save_data(self.lessons)
             return True
+        return False
+
+    def get_lessons_for_day(self, day_of_week: str) -> List[Lesson]:
+        return [
+            Lesson.from_dict(l)
+            for l in self.lessons
+            if l["day_of_week"] == day_of_week
+        ]
+
+    def get_all_lessons(self) -> List[Lesson]:
+        return [Lesson.from_dict(l) for l in self.lessons]
+
+    def get_stats(self) -> Dict[str, int]:
+        """Возвращает словарь {день_недели: кол-во занятий} для графика нагрузки."""
+        stats: Dict[str, int] = {d: 0 for d in self.VALID_DAYS}
+        for l in self.lessons:
+            day = l.get("day_of_week", "")
+            if day in stats:
+                stats[day] += 1
+        return stats

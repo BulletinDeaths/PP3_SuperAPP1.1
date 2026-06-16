@@ -7,5 +7,32 @@
         "lesson_type": "Лекция",
         "room": "312",
         "status": "Запланировано"
+    },
+    {
+        "name": "пропро",
+        "day_of_week": "Понедельник",
+        "start_time": "8:00",
+        "end_time": "9:30",
+        "lesson_type": "Лекция",
+        "room": "123",
+        "status": "Запланировано"
+    },
+    {
+        "name": "кеуекку",
+        "day_of_week": "Понедельник",
+        "start_time": "14:00",
+        "end_time": "15:30",
+        "lesson_type": "Лекция",
+        "room": "344",
+        "status": "Запланировано"
+    },
+    {
+        "name": "параап",
+        "day_of_week": "Вторник",
+        "start_time": "08:00",
+        "end_time": "09:30",
+        "lesson_type": "Лекция",
+        "room": "123",
+        "status": "Запланировано"
     }
 ]
