@@ -3,10 +3,17 @@ from PyQt6.QtWidgets import QApplication
 
 from SuperAppProject1.SuperAPP.ui.main_window import MainWindow
 from SuperAppProject1.SuperAPP.utils.currency_widget import CurrencyWidget
+
 from SuperAppProject1.SuperAPP.utils.budget_widget import BudgetWidget
+
 from SuperAppProject1.SuperAPP.utils.habit_tracker_widget import HabitTrackerWidget
 from SuperAppProject1.SuperAPP.utils.habit_tracker_model import HabitTrackerModel
-from SuperAppProject1.SuperAPP.utils.stub_widget_4 import StubWidget as StubWidget4
+
+from SuperAppProject1.SuperAPP.utils.schedule.storage import Storage
+from SuperAppProject1.SuperAPP.utils.schedule.schedule_engine import ScheduleEngine
+from SuperAppProject1.SuperAPP.utils.schedule.schedule_widget import ScheduleWidget
+
+
 from SuperAppProject1.SuperAPP.utils.stub_widget_5 import StubWidget as StubWidget5
 
 
@@ -16,6 +23,13 @@ def main():
     DATA_FILE_PATH = "data/habits.json"
     habit_tracker_model = HabitTrackerModel(DATA_FILE_PATH)
     habit_tracker_model.load_from_file()
+
+    DATA_FILE_PATH_SCHEDULE = "data/schedule.json"
+    storage = Storage(DATA_FILE_PATH_SCHEDULE)
+    # Создаем ядро логики расписания и передаем ему хранилище.
+    schedule_engine = ScheduleEngine(storage)
+    # Создаем виджет расписания и передаем ему ядро логики.
+    schedule_widget = ScheduleWidget(schedule_engine)
 
     window = MainWindow()
 
@@ -28,8 +42,10 @@ def main():
     # Добавляем третью реализованную утилиту
     window.add_utility_tab(HabitTrackerWidget(habit_tracker_model), "Трекер привычек")
 
+    # Добавляем четвёртую реализованную утилиту
+    window.add_utility_tab(schedule_widget, "Расписание")
+
     # Заглушки для остальных утилит
-    window.add_utility_tab(StubWidget4(4), "Утилита №4")
     window.add_utility_tab(StubWidget5(5), "Утилита №5")
 
     window.showMaximized()
