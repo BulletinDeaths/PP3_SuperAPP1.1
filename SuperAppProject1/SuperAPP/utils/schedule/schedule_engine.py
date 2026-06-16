@@ -44,43 +44,52 @@ class ScheduleEngine:
         self.lessons = self.storage.load_data()
 
     def _is_valid_time(self, time_str: str) -> bool:
-        try:
-            datetime.datetime.strptime(time_str, "%H:%M")
-            return True
-        except ValueError:
-            return False
+        """Принимает форматы HH:MM и H:MM"""
+        for fmt in ("%H:%M", "%I:%M"):
+            try:
+                datetime.datetime.strptime(time_str, fmt)
+                return True
+            except ValueError:
+                pass
+        return False
+
+    def _parse_time(self, time_str: str) -> datetime.datetime:
+        """Парсит время в форматах HH:MM и H:MM"""
+        for fmt in ("%H:%M", "%I:%M"):
+            try:
+                return datetime.datetime.strptime(time_str, fmt)
+            except ValueError:
+                pass
+        raise ValueError(f"Неверный формат времени: {time_str}")
 
     def _times_overlap(self, start1, end1, start2, end2) -> bool:
-        """Проверяет, пересекаются ли два временных интервала.
-           Также проверяет запрет на ночное время (20:00 — 08:00)."""
+        """Проверяет пересечение двух интервалов.
+        start1/end1 — новое занятие (проверяется на ночь).
+        start2/end2 — существующее (только пересечение, без проверки на ночь)."""
 
-        # Парсим строки времени в целые числа (часы)
-        # Сначала обрабатываем первый интервал
-        hour_start1 = int(start1.split(":")[0])  # Час начала первого занятия
-        hour_end1 = int(end1.split(":")[0])  # Час окончания первого занятия
+        t_start1 = self._parse_time(start1)
+        t_end1   = self._parse_time(end1)
+        t_start2 = self._parse_time(start2)
+        t_end2   = self._parse_time(end2)
 
-        # Затем обрабатываем второй интервал
-        hour_start2 = int(start2.split(":")[0])  # Час начала второго занятия
-        hour_end2 = int(end2.split(":")[0])  # Час окончания второго занятия
+        night_start = datetime.datetime.strptime("20:00", "%H:%M")
+        night_end   = datetime.datetime.strptime("08:00", "%H:%M")
 
-        # ❗️ ПРОВЕРКА ЗАПРЕТА ❗️
-        # Проверяем, попадают ли границы любого из двух интервалов в ночной промежуток
-        if (hour_start1 >= 20 or hour_end1 <= 8) or \
-                (hour_start2 >= 20 or hour_end2 <= 8):  # Второе занятие в ночи
+        def is_night(t: datetime.datetime) -> bool:
+            return t >= night_start or t < night_end
+
+        # Проверяем ночной запрет только для нового занятия
+        if is_night(t_start1) or is_night(t_end1):
             raise ValueError("Нельзя создавать занятия в период с 20:00 до 08:00!")
 
-        # Стандартная проверка на пересечение интервалов
-        t_start1 = datetime.datetime.strptime(start1, "%H:%M")
-        t_end1 = datetime.datetime.strptime(end1, "%H:%M")
-        t_start2 = datetime.datetime.strptime(start2, "%H:%M")
-        t_end2 = datetime.datetime.strptime(end2, "%H:%M")
+        # Если существующее занятие имеет некорректное время — пропускаем его
+        if t_end1 <= t_start1:
+            raise ValueError("Время окончания должно быть позже времени начала!")
+        if t_end2 <= t_start2:
+            return False  # Некорректное существующее — не блокируем создание
 
-        # Проверка на некорректное время (конец раньше начала)
-        if t_end1 <= t_start1 or t_end2 <= t_start2:
-            return True  # Считаем это ошибкой/пересечением
-
-        latest_start = max(t_start1, t_start2)
-        earliest_end = min(t_end1, t_end2)
+        latest_start  = max(t_start1, t_start2)
+        earliest_end  = min(t_end1,   t_end2)
         return (earliest_end - latest_start).total_seconds() > 0
 
     def create_lesson(self, lesson: Lesson) -> bool:
@@ -96,9 +105,13 @@ class ScheduleEngine:
         for existing in self.lessons:
             existing_lesson = Lesson.from_dict(existing)
             if existing_lesson.day_of_week == lesson.day_of_week:
+                # ValueError (ночное время) пробрасывается наверх в виджет
                 if self._times_overlap(lesson.start_time, lesson.end_time,
                                        existing_lesson.start_time, existing_lesson.end_time):
-                    return False
+                    raise ValueError(
+                        f"Занятие пересекается с '{existing_lesson.name}' "
+                        f"({existing_lesson.start_time}–{existing_lesson.end_time})"
+                    )
 
         self.lessons.append(lesson.to_dict())
         self.storage.save_data(self.lessons)

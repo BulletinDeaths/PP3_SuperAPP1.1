@@ -1,11 +1,11 @@
 [
     {
-        "name": "прпр",
+        "name": "апвав",
         "day_of_week": "Понедельник",
-        "start_time": "0:00",
-        "end_time": "0:00",
+        "start_time": "10:00",
+        "end_time": "12:30",
         "lesson_type": "Лекция",
-        "room": "",
+        "room": "312",
         "status": "Запланировано"
     }
 ]

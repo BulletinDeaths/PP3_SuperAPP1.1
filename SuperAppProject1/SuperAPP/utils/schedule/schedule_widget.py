@@ -68,11 +68,6 @@ class ScheduleWidget(QWidget):
         self.day_selector.currentIndexChanged.connect(self.on_day_changed)
         top_bar.addWidget(self.day_selector)
 
-        # Разделительная линия для красоты
-        separator = QLabel("|")
-        separator.setStyleSheet("font-size: 24px;")
-        top_bar.addWidget(separator)
-
         # Временная зона (можно убрать, если не актуально)
         timezone_label = QLabel("⏰ Москва")
         top_bar.addWidget(timezone_label)
@@ -85,7 +80,6 @@ class ScheduleWidget(QWidget):
         # Левая колонка: Календарь (Компактный)
         calendar_col = QVBoxLayout()
         self.calendar = QCalendarWidget()
-        # ✅ СДЕЛАЛИ КВАДРАТНЫМ (300x300)
         self.calendar.setFixedSize(300, 300)  
         self.calendar.clicked.connect(self.on_calendar_click)  # Обработка клика мышью
         calendar_col.addWidget(self.calendar)
@@ -116,17 +110,12 @@ class ScheduleWidget(QWidget):
         self.lesson_list.itemDoubleClicked.connect(self.on_item_double_clicked)
         list_layout.addWidget(self.lesson_list)
 
-        # Ранее кнопка "Добавить" стояла тут. Теперь она переехала в TOP_BAR
-        # add_btn = QPushButton("Добавить занятие")
-        # add_btn.clicked.connect(self.on_add_clicked)
-        # list_layout.addWidget(add_btn)
 
         self.list_container.setLayout(list_layout)
         lessons_col.addWidget(self.list_container)
 
-        # Контейнер для формы (будет показывать поля ввода)
         self.form_container = QWidget()
-        form_layout = QFormLayout()  # Удобная сетка для полей
+        form_layout = QFormLayout()
 
         # Поля формы
         self.name_field = QLineEdit()
@@ -147,7 +136,7 @@ class ScheduleWidget(QWidget):
         form_layout.addRow("Тип:", self.type_field)
 
         self.room_field = QLineEdit()
-        form_layout.addRow("Аудитория:", self.room_field)  # <--- ИСПРАВЛЕННАЯ СТРОКА
+        form_layout.addRow("Аудитория:", self.room_field)
 
         # Кнопки формы
         btn_row = QHBoxLayout()
@@ -279,8 +268,8 @@ class ScheduleWidget(QWidget):
         """Очищает все поля формы"""
         self.name_field.clear()
         self.day_field.setCurrentIndex(0)
-        self.time_start_field.setTime("08:00")  # <--- ФИКС: Передаем строку, а не список
-        self.time_end_field.setTime("09:30")    # <--- ФИКС: Передаем строку, а не список
+        self.time_start_field.setTime(QTime(8, 0))
+        self.time_end_field.setTime(QTime(9, 30))
         self.type_field.setCurrentIndex(0)
         self.room_field.clear()
 
@@ -338,62 +327,44 @@ class ScheduleWidget(QWidget):
         """Загружает уроки для выбранного дня и рисует их в списке."""
         self.lesson_list.clear()
 
-        # Получаем текущее время на компьютере пользователя
-        # ZoneInfo - это стандартная библиотека Python 3.9+
-        # Если у вас старая версия, поставьте: pip install tzlocal zoneinfo-backport
         now = datetime.datetime.now(ZoneInfo(get_localzone_name()))
 
-        # Получаем уроки из ядра (модели)
+        # get_lessons_for_day возвращает объекты Lesson — работаем через атрибуты
         lessons = self.engine.get_lessons_for_day(day_name)
 
-        # Проходим по каждому уроку и формируем красивый вывод
-        for lesson in sorted(lessons, key=lambda x: x['start_time']):
-            # Парсим время начала и окончания в нормальные объекты datetime
-            start_hour, start_minute = map(int, lesson['start_time'].split(":"))
-            end_hour, end_minute = map(int, lesson['end_time'].split(":"))
+        for lesson in sorted(lessons, key=lambda x: x.start_time):
+            start_hour, start_minute = map(int, lesson.start_time.split(":"))
+            end_hour, end_minute = map(int, lesson.end_time.split(":"))
 
-            # Создаем виртуальные моменты времени (как будто это сегодня)
-            # Это нужно для математических сравнений
             start_dt = datetime.datetime(now.year, now.month, now.day, start_hour, start_minute)
             end_dt = datetime.datetime(now.year, now.month, now.day, end_hour, end_minute)
 
-            # 💡 ЛОГИКА ОТРИЦАНИЯ 💡
-            # Если выбран прошлый день (например, вчера), ВСЕ уроки считаются прошедшими
             is_past_day = (now.weekday() > self.DAY_MAP_REVERSE[day_name])
-
-            # Если выбран будущий день (завтра-послезавтра), ВСЕ уроки считаются будущими
             is_future_day = (now.weekday() < self.DAY_MAP_REVERSE[day_name])
-
-            # Если выбран текущий день (сегодня), смотрим на точное время
             is_current_day = (now.weekday() == self.DAY_MAP_REVERSE[day_name])
 
-            # 🟢 🟡 🟣 ЦВЕТОВАЯ ЛОГИКА 🟤 🟦
-            # 1. Если это ПРОШЛЫЙ день ИЛИ занятие закончилось сегодня
             if is_past_day or (is_current_day and end_dt < now):
-                color = "#AAA"  # Серый (Прошедшее)
-
-            # 2. Если это БУДУЩИЙ день ИЛИ занятие начнется позже
+                color = "#AAA"
             elif is_future_day or (is_current_day and start_dt > now):
-                color = "#0A0"  # Ярко-зеленый (Будущее)
-
-            # 3. Если занятие идет прямо сейчас
+                color = "#0A0"
             elif start_dt <= now <= end_dt:
-                color = "#DAA520"  # Золотистый (Актуально)
-
-            # 4. Если что-то пошло не так (защита от багов)
+                color = "#DAA520"
             else:
                 color = "black"
 
-            # Формируем HTML-текст для элемента списка
-            # ✅ ФИКС: Добавил тег <html> для совместимости
             html = '<html><span style="color:{};">'.format(color)
-            html += '{} – {}'.format(lesson['start_time'], lesson['end_time'])
-            html += ' | <b>{}</b> | '.format(lesson['lesson_type'])
-            html += '{}({})</span></html>'.format(lesson['name'], lesson['room'])
+            html += '{} – {}'.format(lesson.start_time, lesson.end_time)
+            html += ' | <b>{}</b> | '.format(lesson.lesson_type)
+            html += '{}({})</span></html>'.format(lesson.name, lesson.room)
 
-            # Создаем элемент списка и привязываем к нему внутренний индекс
             item = QListWidgetItem(html)
-            item.setData(Qt.ItemDataRole.UserRole, self.engine.lessons.index(lesson))
+            # Ищем индекс в списке словарей по совпадению данных
+            lesson_dict = lesson.to_dict()
+            global_idx = next(
+                (i for i, d in enumerate(self.engine.lessons) if d == lesson_dict),
+                -1
+            )
+            item.setData(Qt.ItemDataRole.UserRole, global_idx)
             self.lesson_list.addItem(item)
 
     ### НАСТРОЙКА КАЛЕНДАРЯ ###
