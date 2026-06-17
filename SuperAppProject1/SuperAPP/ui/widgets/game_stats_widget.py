@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLineEdit, QSpinBox, QPlainTextEdit, QCheckBox, QGroupBox,
     QLabel, QMessageBox, QSplitter, QDialog, QDialogButtonBox,
-    QAbstractItemView
+    QAbstractItemView, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -32,11 +32,13 @@ class PieChart(Canvas):
     """Круговая диаграмма распределения оценок игрока (1-5 звёзд)."""
 
     def __init__(self, parent=None):
-        fig = Figure(figsize=(4, 4), dpi=80)
+        fig = Figure(figsize=(5, 5), dpi=90)
         fig.patch.set_alpha(0)
         self.ax = fig.add_subplot(111)
         super().__init__(fig)
         self.setParent(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumSize(320, 320)
         self.draw_chart([])
 
     def draw_chart(self, distribution: list):
@@ -316,7 +318,7 @@ class GameStatsWidget(QWidget):
             game.update(updated)
             self.save_catalog()
             self.load_games()
-            self.on_game_selected(row)
+            self.on_game_selected(row, 0)
 
     def on_delete_game_clicked(self):
         row = self._selected_row()
@@ -354,9 +356,8 @@ class GameStatsWidget(QWidget):
         next_number = max(existing_numbers, default=0) + 1
         return f"game_{next_number:03d}"
 
-    # ------------------------------------------------------------------ Обработчики формы оценки
 
-    def on_game_selected(self, row: int):
+    def on_game_selected(self, row: int, column: int):
         game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
         game = self._find_game(game_id)
         if not game:

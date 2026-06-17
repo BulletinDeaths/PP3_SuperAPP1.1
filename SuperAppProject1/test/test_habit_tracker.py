@@ -1,7 +1,7 @@
 import os
 from datetime import date, timedelta
 import unittest
-from SuperAppProject1.SuperAPP.utils.habit_tracker_model import Habit, HabitTrackerModel
+from SuperAppProject1.SuperAPP.models.habit_tracker_model import Habit, HabitTrackerModel
 
 class TestHabit(unittest.TestCase):
     """Тесты для класса Habit."""

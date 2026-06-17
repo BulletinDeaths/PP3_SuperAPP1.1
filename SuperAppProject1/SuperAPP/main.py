@@ -1,30 +1,29 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 
+from SuperAppProject1.SuperAPP.core.navigation import data_path
 from SuperAppProject1.SuperAPP.ui.main_window import MainWindow
-from SuperAppProject1.SuperAPP.utils.currency_widget import CurrencyWidget
+from SuperAppProject1.SuperAPP.ui.widgets.currency_widget import CurrencyWidget
 
-from SuperAppProject1.SuperAPP.utils.budget_widget import BudgetWidget
+from SuperAppProject1.SuperAPP.ui.widgets.budget_widget import BudgetWidget
 
-from SuperAppProject1.SuperAPP.utils.habit_tracker_widget import HabitTrackerWidget
-from SuperAppProject1.SuperAPP.utils.habit_tracker_model import HabitTrackerModel
+from SuperAppProject1.SuperAPP.ui.widgets.habit_tracker_widget import HabitTrackerWidget
+from SuperAppProject1.SuperAPP.models.habit_tracker_model import HabitTrackerModel
 
-from SuperAppProject1.SuperAPP.utils.schedule.storage import Storage
-from SuperAppProject1.SuperAPP.utils.schedule.schedule_engine import ScheduleEngine
-from SuperAppProject1.SuperAPP.utils.schedule.schedule_widget import ScheduleWidget
+from SuperAppProject1.SuperAPP.models.schedule.storage import Storage
+from SuperAppProject1.SuperAPP.models.schedule.schedule_engine import ScheduleEngine
+from SuperAppProject1.SuperAPP.ui.widgets.schedule_widget import ScheduleWidget
 
-from SuperAppProject1.SuperAPP.utils.game_stats_widget import GameStatsWidget
+from SuperAppProject1.SuperAPP.ui.widgets.game_stats_widget import GameStatsWidget
 
 
 def main():
     app = QApplication(sys.argv)
 
-    DATA_FILE_PATH = "data/habits.json"
-    habit_tracker_model = HabitTrackerModel(DATA_FILE_PATH)
+    habit_tracker_model = HabitTrackerModel(data_path("habits.json"))
     habit_tracker_model.load_from_file()
 
-    DATA_FILE_PATH_SCHEDULE = "data/schedule.json"
-    storage = Storage(DATA_FILE_PATH_SCHEDULE)
+    storage = Storage(data_path("schedule.json"))
     # Создаем ядро логики расписания и передаем ему хранилище.
     schedule_engine = ScheduleEngine(storage)
     # Создаем виджет расписания и передаем ему ядро логики.

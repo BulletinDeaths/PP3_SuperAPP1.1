@@ -12,12 +12,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget
 )
 
-from .schedule_engine import Lesson
+from SuperAppProject1.SuperAPP.models.schedule.schedule_engine import Lesson
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Мини-гистограмма нагрузки (Задание 4)
-# ═══════════════════════════════════════════════════════════════
+#  Мини-гистограмма нагрузки
 class LoadChart(QWidget):
     """Простой bar-chart нагрузки по дням недели."""
 
@@ -28,7 +26,7 @@ class LoadChart(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._data = [0] * 7          # кол-во занятий по дням
+        self._data = [0] * 7
         self.setMinimumHeight(110)
         self.setMaximumHeight(130)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -91,9 +89,7 @@ class LoadChart(QWidget):
         p.end()
 
 
-# ═══════════════════════════════════════════════════════════════
 #  Основной виджет
-# ═══════════════════════════════════════════════════════════════
 class ScheduleWidget(QWidget):
 
     DAY_MAP = {
@@ -110,7 +106,7 @@ class ScheduleWidget(QWidget):
 
         self._build_ui()
 
-        # ── Таймер обратного отсчёта (Задание 3) ──────────────────────
+        # Таймер обратного отсчёта
         self._timer = QTimer(self)
         self._timer.setInterval(1000)
         self._timer.timeout.connect(self._update_countdown)
@@ -126,15 +122,13 @@ class ScheduleWidget(QWidget):
         self.load_lessons_for_day(today_name)
         self._refresh_chart()
 
-    # ────────────────────────────────────────────────────────────
     #  Построение UI
-    # ────────────────────────────────────────────────────────────
     def _build_ui(self):
         root = QVBoxLayout(self)
         root.setSpacing(4)
         root.setContentsMargins(6, 6, 6, 6)
 
-        # ── Верхняя панель ─────────────────────────────────────
+        # Верхняя панель
         top = QHBoxLayout()
 
         add_btn = QPushButton("📚 Добавить занятие")
@@ -155,7 +149,7 @@ class ScheduleWidget(QWidget):
 
         top.addStretch()
 
-        # Обратный отсчёт (Задание 3)
+        # Обратный отсчёт
         self.countdown_label = QLabel("⏱ —")
         self.countdown_label.setStyleSheet(
             "font-size:13px; color:#555; padding:0 6px;"
@@ -164,7 +158,7 @@ class ScheduleWidget(QWidget):
 
         root.addLayout(top)
 
-        # ── Основная область ───────────────────────────────────
+        # Основная область
         main = QHBoxLayout()
         main.setSpacing(8)
 
@@ -275,9 +269,7 @@ class ScheduleWidget(QWidget):
         main.addLayout(right, 1)
         root.addLayout(main, 1)
 
-    # ────────────────────────────────────────────────────────────
     #  Навигация / обработчики
-    # ────────────────────────────────────────────────────────────
     def on_today_clicked(self):
         today = QDate.currentDate()
         self.calendar.setSelectedDate(today)
@@ -300,7 +292,7 @@ class ScheduleWidget(QWidget):
 
     def on_add_clicked(self):
         self.current_editing_index = -1
-        # Предзаполняем день из текущего выбора — не сбрасываем в Понедельник!
+        # Предзаполняем день из текущего выбора
         current_day = self.day_selector.currentText()
         self.day_field.setCurrentText(current_day)
         self.name_field.clear()
@@ -337,9 +329,7 @@ class ScheduleWidget(QWidget):
             self.load_lessons_for_day(self.day_selector.currentText())
             self._refresh_chart()
 
-    # ────────────────────────────────────────────────────────────
     #  Форма
-    # ────────────────────────────────────────────────────────────
     def show_form(self):
         self.list_container.hide()
         self.form_container.show()
@@ -389,9 +379,7 @@ class ScheduleWidget(QWidget):
         self.load_lessons_for_day(self.day_selector.currentText())
         self._refresh_chart()
 
-    # ────────────────────────────────────────────────────────────
     #  Список занятий
-    # ────────────────────────────────────────────────────────────
     def load_lessons_for_day(self, day_name: str):
         self.lesson_list.clear()
         self.day_title_label.setText(f"📋 {day_name}")
@@ -469,9 +457,7 @@ class ScheduleWidget(QWidget):
             self.lesson_list.addItem(item)
             self.lesson_list.setItemWidget(item, lbl)
 
-    # ────────────────────────────────────────────────────────────
-    #  Обратный отсчёт (Задание 3)
-    # ────────────────────────────────────────────────────────────
+    #  Обратный отсчёт
     def _update_countdown(self):
         try:
             tz  = ZoneInfo(get_localzone_name())
@@ -526,8 +512,6 @@ class ScheduleWidget(QWidget):
         self.countdown_label.setText("⏱ Занятий сегодня больше нет")
         self.countdown_label.setStyleSheet("font-size:12px;color:#888;")
 
-    # ────────────────────────────────────────────────────────────
-    #  График нагрузки (Задание 4)
-    # ────────────────────────────────────────────────────────────
+    #  График нагрузки
     def _refresh_chart(self):
         self.load_chart.set_data(self.engine.get_stats())

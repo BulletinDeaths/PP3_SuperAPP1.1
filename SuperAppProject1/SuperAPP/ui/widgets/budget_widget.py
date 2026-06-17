@@ -15,7 +15,14 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
-_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_data.db')
+try:
+    from SuperAppProject1.SuperAPP.core.navigation import data_path
+except ImportError:
+    def data_path(filename: str) -> str:
+        os.makedirs("data", exist_ok=True)
+        return os.path.join("data", filename)
+
+_DB_PATH = data_path('budget_data.db')
 
 DEFAULT_INCOME_CATEGORIES  = ["Зарплата", "Стипендия", "Подработка", "Фриланс", "Прочий доход"]
 DEFAULT_EXPENSE_CATEGORIES = ["Продукты", "Транспорт", "Развлечения", "ЖКХ", "Одежда", "Здоровье", "Прочий расход"]
@@ -126,7 +133,7 @@ class BudgetWidget(QWidget):
             )
         ''')
 
-        # --- сносим и пересоздаём если схема старая ---
+        # --- categories: сносим и пересоздаём если схема старая ---
         self.cursor.execute(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='categories'"
         )

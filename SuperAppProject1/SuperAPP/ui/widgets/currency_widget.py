@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QPush
 
 # --- Вспомогательный класс для сигнала о завершении загрузки страницы ---
 class Loader(QObject):
+    """Этот класс будет испускать сигнал, когда страница в QWebEngineView загружена."""
     finished = pyqtSignal()
 
     def __init__(self, view):
@@ -128,7 +129,6 @@ class CurrencyWidget(QWidget):
                     break
 
     def _on_plot_loaded(self):
-        """Этот метод вызывается, когда график полностью отрисован."""
         self.is_loading = False
         if hasattr(self, '_pending_status') and self._pending_status:
             self.status_label.setText(self._pending_status)
