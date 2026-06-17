@@ -13,8 +13,7 @@ from SuperAppProject1.SuperAPP.utils.schedule.storage import Storage
 from SuperAppProject1.SuperAPP.utils.schedule.schedule_engine import ScheduleEngine
 from SuperAppProject1.SuperAPP.utils.schedule.schedule_widget import ScheduleWidget
 
-
-from SuperAppProject1.SuperAPP.utils.stub_widget_5 import StubWidget as StubWidget5
+from SuperAppProject1.SuperAPP.utils.game_stats_widget import PieChart
 
 
 def main():
@@ -45,8 +44,8 @@ def main():
     # Добавляем четвёртую реализованную утилиту
     window.add_utility_tab(schedule_widget, "Расписание")
 
-    # Заглушки для остальных утилит
-    window.add_utility_tab(StubWidget5(5), "Утилита №5")
+    # Добавляем пятую реализованную утилиту
+    window.add_utility_tab(PieChart(), "Статистика игры")
 
     window.showMaximized()
 
