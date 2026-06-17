@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QCalendarWidget, QComboBox, QFormLayout, QHBoxLayout,
     QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QMessageBox, QPushButton, QSizePolicy, QTimeEdit,
-    QVBoxLayout, QWidget, QFrame, QScrollArea,
+    QVBoxLayout, QWidget
 )
 
 from .schedule_engine import Lesson

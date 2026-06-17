@@ -93,81 +93,9 @@ class HabitTrackerWidget(QWidget):
 
         main_layout.addLayout(details_layout)
 
-        # --- СТИЛИ (CSS для Qt) ---
-        self.setStyleSheet("""
-                    /* Стили для всей вкладки */
-                    * {
-                        font-size: 14px;
-                        color: #333;
-                    }
-
-                    /* Панель управления сверху */
-                    #controlPanel {
-                        background-color: #f0f4f8;
-                        border-bottom: 1px solid #d9e2ec;
-                    }
-                    #controlPanel QLineEdit {
-                        padding: 8px;
-                        border: 1px solid #ccc;
-                        border-radius: 20px; /* Скругление углов поля ввода */
-                        width: 250px;
-                    }
-                    /* Стильные кнопки с эмодзи */
-                    QPushButton {
-                        background-color: transparent;
-                        border: none;
-                        font-size: 20px;
-                        cursor: pointer;
-                    }
-                    QPushButton:hover {
-                        color: #0078d4; /* Цвет иконки при наведении */
-                    }
-                    QPushButton:pressed {
-                        color: #005a9e; /* Цвет иконки при нажатии */
-                    }
-
-                    /* Блок статистики справа */
-                    #statsFrame {
-                        background-color: white;
-                        padding: 15px;
-                        border-radius: 10px;
-                        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-                        margin-bottom: 15px;
-                    }
-                    #statsFrame h2 {
-                        margin-top: 0;
-                        color: #2c3e50;
-                    }
-
-                    /* Кнопки действий внизу */
-                    QPushButton {
-                    min-width: 160px; /* Сохраняем фиксированную ширину */
-                    padding: 10px;
-                    margin: 5px 0; /* Добавляем отступы между кнопками по вертикали */
-                    
-                    /* Делаем кнопку белой с черной рамкой */
-                    background-color: white;
-                    color: black;
-                    border: 2px solid black;
-                    
-                    /* Убираем скругление углов, чтобы сделать их прямоугольными */
-                    border-radius: 4px; 
-                    
-                    font-weight: bold;
-                    }
-                    /* При наведении курсора мышки */
-                    QPushButton:hover {
-                        /* Меняем фон на серый */
-                        background-color: #e0e0e0; /* Светло-серый цвет */
-                    }
-                    /* В момент нажатия */
-                    QPushButton:pressed {
-                        /* Сдвигаем виджет вниз и вправо, создавая эффект "нажатия" */
-                        top: 2px;
-                        left: 2px;
-                        background-color: #c0c0c0; /* Чуть более темный серый */
-                    }
-                """)
+        # Локальные стили убраны — вкладка наследует общий дизайн из MainWindow.
+        # objectName-ы (controlPanel, statsFrame, detailsBox) оставлены на случай,
+        # если в глобальной таблице стилей понадобится точечная настройка.
 
         # Инициализация данных
         self.update_habits_list()

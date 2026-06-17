@@ -1,310 +1,415 @@
 import json
 import os
-import datetime
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLineEdit, QSpinBox, QPlainTextEdit, QCheckBox, QGroupBox,
-    QLabel, QMessageBox, QScrollArea, QFrame
+    QLabel, QMessageBox, QSplitter, QDialog, QDialogButtonBox,
+    QAbstractItemView
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QSizePolicy
-from PyQt6.QtGui import QFont, QPixmap, QPainter, QPaintEvent, QColor
+from PyQt6.QtGui import QFont
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as Canvas
 from matplotlib.figure import Figure
 
+try:
+    # Пути к файлам данных строим через core/navigation.py, чтобы они
+    # не зависели от рабочей директории запуска.
+    from SuperAppProject1.SuperAPP.core.navigation import data_path
+except ImportError:
+    # Фолбэк на случай запуска файла отдельно от пакета — например,
+    # при тестировании виджета вне основного приложения.
+    def data_path(filename: str) -> str:
+        os.makedirs("data", exist_ok=True)
+        return os.path.join("data", filename)
+
+
+GAMES_CATALOG_FILE = "games_catalog.json"
+PLAYER_PROGRESS_FILE = "player_progress.json"
 
 
 class PieChart(Canvas):
-    """Простой виджет для круговой диаграммы"""
+    """Круговая диаграмма распределения оценок игрока (1-5 звёзд)."""
+
     def __init__(self, parent=None):
-        fig = Figure(figsize=(4, 4), dpi=72)
+        fig = Figure(figsize=(4, 4), dpi=80)
+        fig.patch.set_alpha(0)
         self.ax = fig.add_subplot(111)
         super().__init__(fig)
-        self.parent = parent
+        self.setParent(parent)
         self.draw_chart([])
 
     def draw_chart(self, distribution: list):
-        labels = [f"{stars}★ ({count})" for stars, count in distribution]
-        sizes = [count for _, count in distribution]
+        """distribution — список пар (звёзды, количество игр с такой оценкой)."""
+        self.ax.clear()
 
-        if not distribution:  # <--- ИСПРАВЛЕНИЕ: Проверка на пустой список
-            self.ax.clear()
+        filtered = [(stars, count) for stars, count in distribution if count > 0]
+
+        if not filtered:
             self.ax.axis('off')
-            self.ax.text(0.5, 0.5, "Нет данных", ha='center', va='center', fontsize=14)
+            self.ax.text(0.5, 0.5, "Нет оценённых игр", ha='center', va='center', fontsize=12)
         else:
-            colors = ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff']
-            explode = [0.1 if size != max(sizes) else 0 for size in sizes]
+            labels = [f"{stars}★ ({count})" for stars, count in filtered]
+            sizes = [count for _, count in filtered]
+            colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#27ae60']
+            # Цвет подбираем по номеру звёздности (1..5), а не по порядку в списке
+            point_colors = [colors[stars - 1] for stars, _ in filtered]
+            explode = [0.05] * len(sizes)
 
-            self.ax.clear()
-            self.ax.pie(sizes, labels=labels, autopct='%1.1f%%',
-                        shadow=True, startangle=90, colors=colors[:len(labels)], explode=explode)
+            self.ax.pie(
+                sizes, labels=labels, autopct='%1.0f%%',
+                startangle=90, colors=point_colors, explode=explode,
+                textprops={'fontsize': 9}
+            )
             self.ax.axis('equal')
 
         self.draw_idle()
 
 
+class GameEditDialog(QDialog):
+    """Диалог добавления новой игры в каталог или редактирования существующей."""
+
+    def __init__(self, parent=None, game_data: dict = None):
+        super().__init__(parent)
+        self.setWindowTitle("Игра в каталоге")
+        self.setMinimumWidth(420)
+        self._game_data = game_data or {}
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Название игры:"))
+        self.title_edit = QLineEdit(self._game_data.get("title", ""))
+        layout.addWidget(self.title_edit)
+
+        layout.addWidget(QLabel("Краткое описание:"))
+        self.description_edit = QPlainTextEdit(self._game_data.get("description", ""))
+        self.description_edit.setFixedHeight(70)
+        layout.addWidget(self.description_edit)
+
+        layout.addWidget(QLabel("Достижения (каждое — на новой строке):"))
+        self.achievements_edit = QPlainTextEdit(
+            "\n".join(self._game_data.get("achievements", []))
+        )
+        self.achievements_edit.setFixedHeight(110)
+        layout.addWidget(self.achievements_edit)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self._on_accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _on_accept(self):
+        if not self.title_edit.text().strip():
+            QMessageBox.warning(self, "Внимание", "Название игры не может быть пустым.")
+            return
+        self.accept()
+
+    def get_result(self) -> dict:
+        """Возвращает словарь с данными игры; id сохраняется, если игра редактировалась."""
+        achievements = [
+            line.strip() for line in self.achievements_edit.toPlainText().splitlines()
+            if line.strip()
+        ]
+        result = {
+            "id": self._game_data.get("id"),
+            "title": self.title_edit.text().strip(),
+            "description": self.description_edit.toPlainText().strip(),
+            "achievements": achievements,
+        }
+        return result
+
+
 class GameStatsWidget(QWidget):
-    """Вкладка для сбора и анализа статистики прохождения игр."""
+    """Вкладка 'Статистика игры': каталог игр + личный прогресс игрока."""
 
     def __init__(self):
         super().__init__()
 
-        # *** НАСТРОЙКА ХРАНЕНИЯ ДАННЫХ ***
-        self.games_catalog = self.load_json("data/games_catalog.json")
-        self.player_progress = self.load_json("data/player_progress.json")
+        self.games_catalog: list = self.load_json(data_path(GAMES_CATALOG_FILE), default=[])
+        self.player_progress: dict = self.load_json(data_path(PLAYER_PROGRESS_FILE), default={})
+        self.current_game_id = None
+        self.checkboxes: list = []
 
-        # *** СОЗДАЕМ ИНТЕРФЕЙС ***
+        self._build_ui()
+        self.load_games()
+
+    # ------------------------------------------------------------------ UI
+
+    def _build_ui(self):
         main_layout = QVBoxLayout(self)
 
-        # Верхняя панель: Заголовок и кнопка "Оценить"
+        # --- Верхняя панель: заголовок + кнопки управления каталогом ---
         header = QHBoxLayout()
-        title_label = QLabel("🎮 Статистика игр")
-        title_font = QFont(); title_font.setPointSize(18); title_font.setBold(True)
+
+        title_label = QLabel("🎮 Статистика игры")
+        title_font = QFont()
+        title_font.setPointSize(18)
+        title_font.setBold(True)
         title_label.setFont(title_font)
         header.addWidget(title_label)
+        header.addStretch()
 
-        rate_btn = QPushButton("☆ Поставить оценку")
-        rate_btn.clicked.connect(self.on_rate_game_clicked)
-        header.addWidget(rate_btn)
+        add_game_btn = QPushButton("➕ Новая игра")
+        add_game_btn.clicked.connect(self.on_add_game_clicked)
+        header.addWidget(add_game_btn)
+
+        edit_game_btn = QPushButton("✏️ Редактировать")
+        edit_game_btn.clicked.connect(self.on_edit_game_clicked)
+        header.addWidget(edit_game_btn)
+
+        delete_game_btn = QPushButton("🗑️ Удалить игру")
+        delete_game_btn.setProperty("cancel", True)
+        delete_game_btn.clicked.connect(self.on_delete_game_clicked)
+        header.addWidget(delete_game_btn)
 
         main_layout.addLayout(header)
 
-        # Центральная область: Список игр и Диаграмма
-        central_grid = QHBoxLayout()
+        # --- Центральная область: список игр | диаграмма ---
+        splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # Левая сторона: Каталог игр (Список)
-        games_box = QGroupBox("Доступные игры")
+        games_box = QGroupBox("Каталог игр")
         games_layout = QVBoxLayout(games_box)
-
         self.games_table = QTableWidget()
         self.games_table.setColumnCount(3)
-        self.games_table.setHorizontalHeaderLabels([
-            "Название", "Моя оценка", "Количество достижений"
-        ])
+        self.games_table.setHorizontalHeaderLabels(["Название", "Моя оценка", "Достижения"])
         self.games_table.horizontalHeader().setStretchLastSection(True)
         self.games_table.verticalHeader().setVisible(False)
         self.games_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.games_table.cellClicked.connect(self.on_game_selected)  # Одно нажатие
-        self.games_table.cellDoubleClicked.connect(self.on_game_opened)  # Двойное нажатие
+        self.games_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.games_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.games_table.cellClicked.connect(self.on_game_selected)
+        self.games_table.cellDoubleClicked.connect(self.on_game_opened)
+        games_layout.addWidget(self.games_table)
+        splitter.addWidget(games_box)
 
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(self.games_table)
-        games_layout.addWidget(scroll_area)
-        central_grid.addWidget(games_box, stretch=2)
-
-        # Правая сторона: Круговая диаграмма (Matplotlib)
         chart_box = QGroupBox("Распределение моих оценок")
         chart_layout = QVBoxLayout(chart_box)
-
         self.chart_canvas = PieChart(parent=self)
-        self.chart_canvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         chart_layout.addWidget(self.chart_canvas)
-        central_grid.addWidget(chart_box, stretch=1)
+        splitter.addWidget(chart_box)
 
-        main_layout.addLayout(central_grid)
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 1)
+        main_layout.addWidget(splitter, stretch=3)
 
-        # Нижняя часть: Форма для заполнения (Скрытая)
-        self.form_container = QWidget()
-        form_layout = QVBoxLayout(self.form_layout.addWidget(self.form_container))
+        # --- Нижний блок: форма оценки выбранной игры ---
+        form_box = QGroupBox("Моя оценка выбранной игры")
+        form_layout = QVBoxLayout(form_box)
 
-        # Группа: Название и Оценка игры
-        game_group = QHBoxLayout()
-        self.title_label = QLabel("")  # Название игры (только для чтения)
-        self.title_label.setFont(QFont("Arial", 14, weight=QFont.Bold))
-        game_group.addWidget(self.title_label)
+        name_row = QHBoxLayout()
+        self.title_label = QLabel("Выберите игру в списке")
+        title_label_font = QFont()
+        title_label_font.setPointSize(13)
+        title_label_font.setBold(True)
+        self.title_label.setFont(title_label_font)
+        name_row.addWidget(self.title_label)
+        name_row.addStretch()
 
-        rating_label = QLabel("Моя оценка (звёзды):")
+        name_row.addWidget(QLabel("Оценка (★):"))
         self.rating_spinbox = QSpinBox()
         self.rating_spinbox.setRange(1, 5)
-        game_group.addWidget(rating_label)
-        game_group.addWidget(self.rating_spinbox)
-        form_layout.addLayout(game_group)
+        name_row.addWidget(self.rating_spinbox)
+        form_layout.addLayout(name_row)
 
-        # Группа: Достижения (Checkbox'ы)
-        self.achievement_group = QGroupBox("Мои успехи в этой игре:")
-        achievement_layout = QVBoxLayout()
-        self.checkboxes = []  # Для хранения ссылок
-        self.achievement_group.setLayout(achievement_layout)
+        self.achievement_group = QGroupBox("Выполненные достижения")
+        self.achievement_layout = QVBoxLayout(self.achievement_group)
         form_layout.addWidget(self.achievement_group)
 
-        # Группа: Подробный отзыв
-        review_group = QHBoxLayout()
-        review_label = QLabel("Мой отзыв:")
+        review_row = QHBoxLayout()
+        review_row.addWidget(QLabel("Отзыв:"))
         self.review_textarea = QPlainTextEdit()
-        review_group.addWidget(review_label)
-        review_group.addWidget(self.review_textarea)
-        form_layout.addLayout(review_group)
+        self.review_textarea.setFixedHeight(70)
+        review_row.addWidget(self.review_textarea)
+        form_layout.addLayout(review_row)
 
-        # Кнопки формы
         btn_row = QHBoxLayout()
-        self.save_btn = QPushButton("✅ Сохранить")
+        btn_row.addStretch()
+        self.save_btn = QPushButton("✅ Сохранить оценку")
         self.save_btn.clicked.connect(self.on_save_clicked)
         btn_row.addWidget(self.save_btn)
-
-        cancel_btn = QPushButton("❌ Отмена")
-        cancel_btn.setProperty("cancel", True)
-        cancel_btn.clicked.connect(self.hide_form)
-        btn_row.addWidget(cancel_btn)
-
         form_layout.addLayout(btn_row)
-        self.form_container.hide()  # Скрываем форму по умолчанию
-        main_layout.addWidget(self.form_container)
 
-        # *** КОНЕЦ ИНТЕРФЕЙСА ***
+        self.form_box = form_box
+        self.form_box.setEnabled(False)
+        main_layout.addWidget(form_box, stretch=2)
 
-        # Инициализация
-        self.load_games()
+    # ------------------------------------------------------------------ Файлы
 
-        print("Каталог игр:", self.games_catalog)
-        print("Прогресс пользователя:", self.player_progress)
-
-    ### РАБОТА С ФАЙЛАМИ ###
-    def load_json(self, path: str) -> any:
-        """Безопасная загрузка JSON-файлов."""
+    def load_json(self, path: str, default):
         if not os.path.exists(path):
-            return {}
+            return default
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            return {}
+            return default
 
-    def save_json(self, path: str, data: any) -> None:
-        """Сохранение данных обратно в JSON."""
+    def save_json(self, path: str, data) -> None:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
-    ### ОБРАБОТЧИКИ СИГНАЛОВ ###
-    def on_rate_game_clicked(self):
-        """Нажата кнопка 'Поставить оценку'.
-        Если ни одна игра не выбрана, покажем предупреждение.
-        """
-        selected_rows = set(self.games_table.selectionModel().selectedRows())
-        if not selected_rows:
-            QMessageBox.information(self, "Внимание", "Сначала выберите игру из списка.")
-            return
+    def save_catalog(self):
+        self.save_json(data_path(GAMES_CATALOG_FILE), self.games_catalog)
 
-        # Если выбрано несколько игр, работаем только с первой
-        first_row = next(iter(selected_rows)).row()
-        self.on_game_selected(first_row, 0)  # Симулируем выбор
-        self.show_form()
+    def save_progress(self):
+        self.save_json(data_path(PLAYER_PROGRESS_FILE), self.player_progress)
 
-    def on_game_selected(self, row: int, column: int):
-        """Одно нажатие по ячейке таблицы.
-        Выбираем игру, подгружаем её данные и заполняем форму.
-        """
-        game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
-        self.current_game_id = game_id
-
-        # Загружаем шаблон игры из каталога
-        catalog_entry = next((g for g in self.games_catalog if g["id"] == game_id), {})
-        if not catalog_entry:
-            return
-
-        # Загружаем прогресс пользователя для этой игры
-        player_entry = self.player_progress.get(game_id, {})
-
-        # Заполняем форму
-        self.title_label.setText(catalog_entry["title"])
-        self.rating_spinbox.setValue(player_entry.get("rating", 1))
-
-        # Генерируем CheckBox'ы для достижений
-        self.clear_checkboxes()
-        for achievement in catalog_entry.get("achievements", []):
-            cb = QCheckBox(achievement)
-            cb.setChecked(achievement in player_entry.get("completed", []))
-            self.checkboxes.append(cb)
-            self.achievement_group.layout().addWidget(cb)
-
-        self.review_textarea.setPlainText(player_entry.get("review", ""))
-
-    def on_game_opened(self, row: int, column: int):
-        """Двойной клик по ячейке таблицы.
-        Переходим в режим детального просмотра игры.
-        """
-        game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
-        catalog_entry = next((g for g in self.games_catalog if g["id"] == game_id), {})
-        if not catalog_entry:
-            return
-
-        msg = QMessageBox(self)
-        msg.setWindowTitle(f"Детали игры: {catalog_entry['title']}")
-        msg.setText(catalog_entry.get("description", "(Нет описания)"))
-        msg.exec()
-
-    def on_save_clicked(self):
-        """Срабатывает при нажатии кнопки 'Сохранить'.
-        Сохраняет оценку, прогресс по достижениям и отзыв.
-        """
-        if not hasattr(self, "current_game_id"):
-            return
-
-        # Собираем данные
-        progress = {
-            "rating": self.rating_spinbox.value(),
-            "completed": [cb.text() for cb in self.checkboxes if cb.isChecked()],
-            "review": self.review_textarea.toPlainText().strip()
-        }
-
-        # Сохраняем в прогресс
-        self.player_progress[self.current_game_id] = progress
-        self.save_json("data/player_progress.json", self.player_progress)
-
-        # Обновляем таблицу и график
-        self.load_games()
-        self.hide_form()
-
-    ### РАБОТА С ФОРМОЙ ###
-
-    def show_form(self):
-        """Показывает форму и скрывает таблицу."""
-        self.games_table.hide()
-        self.form_container.show()
-
-    def hide_form(self):
-        """Прячет форму и показывает таблицу."""
-        self.form_container.hide()
-        self.games_table.show()
-
-    def clear_checkboxes(self):
-        """Очистка группы CheckBox'ов перед загрузкой новой игры."""
-        while self.achievement_group.layout().count():
-            child = self.achievement_group.layout().takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-        self.checkboxes.clear()
-
-    ### РАБОТА С ДАННЫМИ ###
+    # ------------------------------------------------------------------ Таблица и диаграмма
 
     def load_games(self):
-        """Загружает все игры из каталога и строит таблицу."""
+        """Перестраивает таблицу каталога и диаграмму оценок."""
         self.games_table.setRowCount(len(self.games_catalog))
 
         for row, game in enumerate(self.games_catalog):
-            # Столбец 1: Название игры (ссылка на ID)
             title_item = QTableWidgetItem(game["title"])
-            title_item.setData(Qt.ItemDataRole.UserRole, game["id"])  # Скрытое поле
+            title_item.setData(Qt.ItemDataRole.UserRole, game["id"])
             title_item.setToolTip(game.get("description", ""))
-            title_item.setFlags(title_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # <--- Защита от редактирования
             self.games_table.setItem(row, 0, title_item)
 
-            # Столбец 2: Моя оценка
             progress = self.player_progress.get(game["id"], {})
-            rating_item = QTableWidgetItem(f"{progress.get('rating', '-')} ☆")
-            rating_item.setFlags(rating_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # <--- Защита от редактирования
+            rating_item = QTableWidgetItem(f"{progress.get('rating', '-')} ★" if progress.get('rating') else "—")
             self.games_table.setItem(row, 1, rating_item)
 
-            # Столбец 3: Количество выполненных достижений
             completed_count = len(progress.get("completed", []))
             total_count = len(game.get("achievements", []))
-            ratio = f"{completed_count}/{total_count}" if total_count else "-"
+            ratio = f"{completed_count}/{total_count}" if total_count else "—"
             achievements_item = QTableWidgetItem(ratio)
-            achievements_item.setFlags(achievements_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # <--- Защита от редактирования
             self.games_table.setItem(row, 2, achievements_item)
 
-        # Строим график распределения оценок
-        ratings = [sess.get("rating") for sess in self.player_progress.values()]
+        ratings = [entry.get("rating") for entry in self.player_progress.values() if entry.get("rating")]
         distribution = [(stars, ratings.count(stars)) for stars in range(1, 6)]
         self.chart_canvas.draw_chart(distribution)
+
+    def _find_game(self, game_id: str) -> dict:
+        return next((g for g in self.games_catalog if g["id"] == game_id), None)
+
+    def _selected_row(self):
+        rows = self.games_table.selectionModel().selectedRows()
+        return rows[0].row() if rows else None
+
+    # ------------------------------------------------------------------ Обработчики каталога
+
+    def on_add_game_clicked(self):
+        dialog = GameEditDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            data = dialog.get_result()
+            data["id"] = self._generate_game_id()
+            self.games_catalog.append(data)
+            self.save_catalog()
+            self.load_games()
+
+    def on_edit_game_clicked(self):
+        row = self._selected_row()
+        if row is None:
+            QMessageBox.information(self, "Внимание", "Сначала выберите игру из списка.")
+            return
+        game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        game = self._find_game(game_id)
+        if not game:
+            return
+
+        dialog = GameEditDialog(self, game_data=game)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            updated = dialog.get_result()
+            game.update(updated)
+            self.save_catalog()
+            self.load_games()
+            self.on_game_selected(row)
+
+    def on_delete_game_clicked(self):
+        row = self._selected_row()
+        if row is None:
+            QMessageBox.information(self, "Внимание", "Сначала выберите игру из списка.")
+            return
+        game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        game = self._find_game(game_id)
+        if not game:
+            return
+
+        reply = QMessageBox.question(
+            self, "Подтверждение",
+            f"Удалить игру «{game['title']}» из каталога вместе с моей оценкой?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.games_catalog.remove(game)
+            self.player_progress.pop(game_id, None)
+            self.save_catalog()
+            self.save_progress()
+            self.current_game_id = None
+            self.form_box.setEnabled(False)
+            self.title_label.setText("Выберите игру в списке")
+            self.load_games()
+
+    def _generate_game_id(self) -> str:
+        existing_numbers = []
+        for g in self.games_catalog:
+            try:
+                existing_numbers.append(int(g["id"].split("_")[-1]))
+            except (ValueError, IndexError, KeyError):
+                continue
+        next_number = max(existing_numbers, default=0) + 1
+        return f"game_{next_number:03d}"
+
+    # ------------------------------------------------------------------ Обработчики формы оценки
+
+    def on_game_selected(self, row: int):
+        game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        game = self._find_game(game_id)
+        if not game:
+            return
+
+        self.current_game_id = game_id
+        self.form_box.setEnabled(True)
+
+        progress = self.player_progress.get(game_id, {})
+        self.title_label.setText(game["title"])
+        self.rating_spinbox.setValue(progress.get("rating", 1))
+
+        self._rebuild_achievement_checkboxes(game.get("achievements", []), progress.get("completed", []))
+        self.review_textarea.setPlainText(progress.get("review", ""))
+
+    def on_game_opened(self, row: int, column: int):
+        """Двойной клик — показать описание игры."""
+        game_id = self.games_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        game = self._find_game(game_id)
+        if not game:
+            return
+        QMessageBox.information(
+            self, game["title"],
+            game.get("description", "(Нет описания)")
+        )
+
+    def _rebuild_achievement_checkboxes(self, achievements: list, completed: list):
+        while self.achievement_layout.count():
+            item = self.achievement_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self.checkboxes = []
+
+        if not achievements:
+            self.achievement_layout.addWidget(QLabel("Для этой игры пока не заданы достижения."))
+            return
+
+        for achievement in achievements:
+            cb = QCheckBox(achievement)
+            cb.setChecked(achievement in completed)
+            self.checkboxes.append(cb)
+            self.achievement_layout.addWidget(cb)
+
+    def on_save_clicked(self):
+        if not self.current_game_id:
+            return
+
+        progress = {
+            "rating": self.rating_spinbox.value(),
+            "completed": [cb.text() for cb in self.checkboxes if cb.isChecked()],
+            "review": self.review_textarea.toPlainText().strip(),
+        }
+        self.player_progress[self.current_game_id] = progress
+        self.save_progress()
+        self.load_games()
+        QMessageBox.information(self, "Сохранено", "Оценка и отзыв сохранены.")

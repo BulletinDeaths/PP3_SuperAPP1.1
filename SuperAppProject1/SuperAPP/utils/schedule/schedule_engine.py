@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 
 class Lesson:

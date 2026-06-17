@@ -1,6 +1,3 @@
-# tests/test_habit_tracker.py
-
-import json
 import os
 from datetime import date, timedelta
 import unittest

@@ -59,6 +59,32 @@ class MainWindow(QWidget):
                         background-position: center left;
                         padding-left: 30px;
                     }
+
+                    /* --- Общие блоки, используемые во вкладках (трекер привычек, статистика игр) --- */
+
+                    /* Верхняя панель управления (поле ввода + кнопки действий) */
+                    QFrame#controlPanel {
+                        background-color: #f0f4f8;
+                        border-bottom: 1px solid #d9e2ec;
+                    }
+                    QFrame#controlPanel QLineEdit {
+                        padding: 8px;
+                        border: 1px solid #ccc;
+                        border-radius: 6px;
+                    }
+
+                    /* Карточка с деталями/статистикой справа */
+                    QFrame#statsFrame {
+                        background-color: white;
+                        border: 1px solid #e1e8ed;
+                        border-radius: 10px;
+                        padding: 15px;
+                    }
+
+                    /* Контейнеры-боксы под детали */
+                    QWidget#detailsBox {
+                        background-color: transparent;
+                    }
                 """)
 
     def add_utility_tab(self, widget_instance, title):
