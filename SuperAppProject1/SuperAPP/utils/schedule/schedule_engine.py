@@ -64,7 +64,7 @@ class ScheduleEngine:
         self.storage = storage
         self.lessons: List[Dict] = self.storage.load_data()
 
-    # ------------------------------------------------------------------ helpers
+
     @staticmethod
     def _to_time(s: str) -> datetime.time:
         return datetime.datetime.strptime(s, "%H:%M").time()
@@ -95,7 +95,7 @@ class ScheduleEngine:
             return False
         return max(a, c) < min(b, d)
 
-    # ------------------------------------------------------------------ CRUD
+
     def create_lesson(self, lesson: Lesson) -> bool:
         if not lesson.name.strip():
             raise ValueError("Название предмета не может быть пустым.")

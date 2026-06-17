@@ -17,7 +17,7 @@ class MainWindow(QWidget):
         main_layout.addWidget(header_label)
         main_layout.addWidget(self.tab_widget)
 
-        # ГЛОБАЛЬНЫЕ СТИЛИ ДЛЯ ВСЕХ КОМПОНЕНТОВ ОКНА
+        # СТИЛИ ДЛЯ ВСЕХ КОМПОНЕНТОВ ОКНА
         self.setStyleSheet("""
                     /* Общий стиль для всех кнопок */
                     QPushButton {

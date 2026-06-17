@@ -9,12 +9,6 @@ from datetime import date
 
 class HabitTrackerWidget(QWidget):
     def __init__(self, model):
-        """
-        Виджет для вкладки "Трекер привычек".
-
-        Args:
-            model: Экземпляр модели данных HabitTrackerModel.
-        """
         super().__init__()
         self.model = model
 
@@ -31,7 +25,7 @@ class HabitTrackerWidget(QWidget):
 
         self.habit_name_input = QLineEdit()
         self.habit_name_input.setPlaceholderText("Новая привычка...")
-        self.habit_name_input.returnPressed.connect(self.add_habit)  # Можно добавлять по Enter
+        self.habit_name_input.returnPressed.connect(self.add_habit)
 
         add_button = QPushButton("➕ Добавить")
         add_button.clicked.connect(self.add_habit)
@@ -93,10 +87,6 @@ class HabitTrackerWidget(QWidget):
 
         main_layout.addLayout(details_layout)
 
-        # Локальные стили убраны — вкладка наследует общий дизайн из MainWindow.
-        # objectName-ы (controlPanel, statsFrame, detailsBox) оставлены на случай,
-        # если в глобальной таблице стилей понадобится точечная настройка.
-
         # Инициализация данных
         self.update_habits_list()
 
@@ -107,7 +97,6 @@ class HabitTrackerWidget(QWidget):
         import_btn.clicked.connect(self.import_data)
 
     # --- Методы для обновления интерфейса ---
-
     def update_habits_list(self):
         """Обновляет список привычек в QListWidget."""
         self.habits_list.clear()
@@ -130,9 +119,8 @@ class HabitTrackerWidget(QWidget):
         )
 
     # --- Методы для обработки действий пользователя ---
-
     def add_habit(self):
-        """Обработчик кнопки 'Добавить'."""
+        """Кнопка 'Добавить'."""
         name = self.habit_name_input.text().strip()
         if name:
             self.model.add_habit(name)
@@ -143,7 +131,7 @@ class HabitTrackerWidget(QWidget):
             self.habits_list.setCurrentRow(last_index)
 
     def delete_habit(self):
-        """Обработчик кнопки 'Удалить'."""
+        """Кнопка 'Удалить'."""
         index = self.habits_list.currentRow()
         if index != -1:
             reply = QMessageBox.question(
@@ -173,7 +161,6 @@ class HabitTrackerWidget(QWidget):
                 self.update_habit_details(index)
 
     # --- Методы для импорта и экспорта ---
-
     def export_data(self):
         """Экспортирует данные в файл .json по выбору пользователя."""
         json_data = self.model.export_to_json()

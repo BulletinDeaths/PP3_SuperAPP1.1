@@ -4,7 +4,6 @@ from datetime import date
 from typing import List, Optional
 
 # --- Модели данных ---
-
 class HabitCheck:
     """Модель для хранения одной отметки о выполнении привычки."""
     def __init__(self, check_date: date, is_completed: bool):
@@ -52,7 +51,6 @@ class Habit:
         self.best_streak = best_streak
 
 # --- Менеджер данных ---
-
 class HabitTrackerModel:
     """Менеджер для управления коллекцией привычек и их сохранением."""
     def __init__(self, data_file_path: str):
@@ -111,7 +109,6 @@ class HabitTrackerModel:
 
     # Методы для экспорта/импорта
     def export_to_json(self) -> str:
-        """Экспортирует данные в строку JSON."""
         return json.dumps({
             "habits": [
                 {

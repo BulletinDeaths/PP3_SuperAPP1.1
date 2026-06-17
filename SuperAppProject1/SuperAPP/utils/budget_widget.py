@@ -126,7 +126,7 @@ class BudgetWidget(QWidget):
             )
         ''')
 
-        # --- categories: сносим и пересоздаём если схема старая ---
+        # --- сносим и пересоздаём если схема старая ---
         self.cursor.execute(
             "SELECT sql FROM sqlite_master WHERE type='table' AND name='categories'"
         )

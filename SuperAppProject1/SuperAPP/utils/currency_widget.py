@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QPush
 
 # --- Вспомогательный класс для сигнала о завершении загрузки страницы ---
 class Loader(QObject):
-    """Этот класс будет испускать сигнал, когда страница в QWebEngineView загружена."""
     finished = pyqtSignal()
 
     def __init__(self, view):
@@ -57,9 +56,9 @@ class CurrencyWidget(QWidget):
         self.from_currency.addItems(self._currencies)
         self.to_currency.addItems(self._currencies)
 
-        # По умолчанию «От» = USD, «К» = RUB — сразу разные
-        self.from_currency.setCurrentText('USD')
-        self.to_currency.setCurrentText('RUB')
+        # По умолчанию «От» и «К»
+        self.from_currency.setCurrentText('RUB')
+        self.to_currency.setCurrentText('USD')
 
         # Взаимная блокировка одинакового выбора
         self.from_currency.currentTextChanged.connect(self._on_from_changed)
@@ -137,8 +136,6 @@ class CurrencyWidget(QWidget):
             self._pending_status = None
 
     def fetch_and_plot_data(self):
-        """Получение данных и отображение графика"""
-
         # 1. Блокировка от повторных нажатий, пока идет загрузка
         if getattr(self, 'is_loading', False):
             return
@@ -222,7 +219,7 @@ class CurrencyWidget(QWidget):
 
 
     def _generate_plot_html(self, df, code_from, code_to):
-        """Генерирует HTML-код для графика. Вынесено в отдельный метод для чистоты."""
+        """Генерирует HTML-код для графика."""
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=df['Date'],
@@ -243,7 +240,7 @@ class CurrencyWidget(QWidget):
         )
 
     def show_simple_graph(self, currency, date1, date2):
-        """Показывает простой график для одинаковых валют."""
+        """Простой график для одинаковых валют."""
         dates = pd.date_range(start=pd.to_datetime(date1, format='%d/%m/%Y'),
                               end=pd.to_datetime(date2, format='%d/%m/%Y'),
                               freq='D')
