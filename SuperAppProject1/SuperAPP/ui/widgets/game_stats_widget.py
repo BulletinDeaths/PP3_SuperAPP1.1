@@ -13,12 +13,8 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as Canvas
 from matplotlib.figure import Figure
 
 try:
-    # Пути к файлам данных строим через core/navigation.py, чтобы они
-    # не зависели от рабочей директории запуска.
     from SuperAppProject1.SuperAPP.core.navigation import data_path
 except ImportError:
-    # Фолбэк на случай запуска файла отдельно от пакета — например,
-    # при тестировании виджета вне основного приложения.
     def data_path(filename: str) -> str:
         os.makedirs("data", exist_ok=True)
         return os.path.join("data", filename)
