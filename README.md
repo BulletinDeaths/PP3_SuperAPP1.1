@@ -23,11 +23,11 @@ SuperAppProject1/
 │   │   └── navigation.py  # Логика переключения вкладок
 │   │
 │   ├── data/
-│   │   ├── games_catalog.json  # Записанная информация для game_stats_widget.py
-│   │   ├── habits.json  # Сохранения в budget_widget.py
-│   │   ├── player_progress.json  # Сохранения пользователя в game_stats_widget.py
-│   │   ├── schedule.json  # Сохранения в schedule_widget.py
-│   │   └── budget_data.db  # Сохранения базы данных для currency_widget.py
+│   │   ├── games_catalog.json  # Запис. инф. для game_stats_widget.py
+│   │   ├── habits.json  # Сохран. в budget_widget.py
+│   │   ├── player_progress.json  # Сохран. пользователя в game_stats_widget.py
+│   │   ├── schedule.json  # Сохран. в schedule_widget.py
+│   │   └── budget_data.db  # Сохран. БД для currency_widget.py
 │   │
 │   ├── models/         # бизнес-логика и хранение
 │   │   ├── __init__.py
