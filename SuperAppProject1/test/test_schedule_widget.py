@@ -25,9 +25,6 @@ class TestScheduleWidget(unittest.TestCase):
         self.widget = ScheduleWidget(self.engine)
 
     def tearDown(self):
-        # ScheduleWidget запускает собственный QTimer с интервалом 1с
-        # в __init__ (self._timer.start()), который продолжает работать
-        # после завершения теста, если явно его не остановить.
         self.widget._timer.stop()
         shutil.rmtree(self._tmp_dir, ignore_errors=True)
 
