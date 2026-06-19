@@ -20,14 +20,14 @@ SuperAppProject1/
 ├── SuperAPP/  # Основной пакет приложения
 │   ├── core/       # инициализация приложения, пути, настройки
 │   │   ├── __init__.py
-│   │   └── navigation.py   # Логика переключения вкладок
+│   │   └── navigation.py  # Логика переключения вкладок
 │   │
 │   ├── data/
-│   │   ├── games_catalog.json    # Запис. инф. для game_stats_widget.py
-│   │   ├── habits.json           # Сохран. в budget_widget.py
-│   │   ├── player_progress.json  # Сохран. пользователя в game_stats_widget.py
-│   │   ├── schedule.json         # Сохран. в schedule_widget.py
-│   │   └── budget_data.db        # Сохран. БД для currency_widget.py
+│   │   ├── games_catalog.json
+│   │   ├── habits.json
+│   │   ├── player_progress.json
+│   │   ├── schedule.json
+│   │   └── budget_data.db
 │   │
 │   ├── models/         # бизнес-логика и хранение
 │   │   ├── __init__.py
@@ -52,7 +52,18 @@ SuperAppProject1/
 │   │
 │   ├── __init__.py
 │   └── main.py   # Точка входа
+│   │
+├── test
+│   ├── conftest.py                     # Общий юнит шаблон
+│   ├── test_currency_widget.py         # Юнит тест для Утилиты №1
+│   ├── test_budget_widget.py           # Юнит тест для Утилиты №2
+│   ├── test_habit_tracker_widget.py    # Юнит тест для Утилиты №3
+│   ├── test_habit_tracker_model.py     # Юнит тест для модели Утилиты №3
+│   ├── test_schedule_widget.py         # Юнит тест для Утилиты №4
+│   └── test_game_stats_widget.py       # Юнит тест для Утилиты №5
+│   │
 └── requirements.txt
+
 ```
 ---
 
