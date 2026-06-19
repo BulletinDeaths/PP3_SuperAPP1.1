@@ -27,15 +27,15 @@ class HabitTrackerWidget(QWidget):
         self.habit_name_input.setPlaceholderText("Новая привычка...")
         self.habit_name_input.returnPressed.connect(self.add_habit)
 
-        add_button = QPushButton("➕ Добавить")
-        add_button.clicked.connect(self.add_habit)
+        self.add_habit_button = QPushButton("➕ Добавить")
+        self.add_habit_button.clicked.connect(self.add_habit)
 
-        delete_button = QPushButton("🗑️ Удалить")
-        delete_button.clicked.connect(self.delete_habit)
+        self.delete_habit_button = QPushButton("🗑️ Удалить")
+        self.delete_habit_button.clicked.connect(self.delete_habit)
 
         control_layout.addWidget(self.habit_name_input)
-        control_layout.addWidget(add_button)
-        control_layout.addWidget(delete_button)
+        control_layout.addWidget(self.add_habit_button)
+        control_layout.addWidget(self.delete_habit_button)
 
         main_layout.addWidget(control_frame)
 
@@ -75,6 +75,8 @@ class HabitTrackerWidget(QWidget):
         io_buttons_layout = QHBoxLayout()
         export_btn = QPushButton("💾 Экспорт (JSON)")
         import_btn = QPushButton("📥 Импорт (JSON)")
+        self.export_btn = export_btn
+        self.import_btn = import_btn
         io_buttons_layout.addWidget(export_btn)
         io_buttons_layout.addWidget(import_btn)
 

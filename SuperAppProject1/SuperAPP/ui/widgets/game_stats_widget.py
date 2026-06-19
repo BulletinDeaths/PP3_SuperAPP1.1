@@ -149,18 +149,18 @@ class GameStatsWidget(QWidget):
         header.addWidget(title_label)
         header.addStretch()
 
-        add_game_btn = QPushButton("➕ Новая игра")
-        add_game_btn.clicked.connect(self.on_add_game_clicked)
-        header.addWidget(add_game_btn)
+        self.add_game_btn = QPushButton("➕ Новая игра")
+        self.add_game_btn.clicked.connect(self.on_add_game_clicked)
+        header.addWidget(self.add_game_btn)
 
-        edit_game_btn = QPushButton("✏️ Редактировать")
-        edit_game_btn.clicked.connect(self.on_edit_game_clicked)
-        header.addWidget(edit_game_btn)
+        self.edit_game_btn = QPushButton("✏️ Редактировать")
+        self.edit_game_btn.clicked.connect(self.on_edit_game_clicked)
+        header.addWidget(self.edit_game_btn)
 
-        delete_game_btn = QPushButton("🗑️ Удалить игру")
-        delete_game_btn.setProperty("cancel", True)
-        delete_game_btn.clicked.connect(self.on_delete_game_clicked)
-        header.addWidget(delete_game_btn)
+        self.delete_game_btn = QPushButton("🗑️ Удалить игру")
+        self.delete_game_btn.setProperty("cancel", True)
+        self.delete_game_btn.clicked.connect(self.on_delete_game_clicked)
+        header.addWidget(self.delete_game_btn)
 
         main_layout.addLayout(header)
 

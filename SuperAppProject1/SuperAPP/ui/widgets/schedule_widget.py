@@ -218,9 +218,9 @@ class ScheduleWidget(QWidget):
         list_lay.addWidget(self.lesson_list)
 
         # Кнопка удаления
-        del_btn = QPushButton("🗑 Удалить выбранное")
-        del_btn.clicked.connect(self.on_delete_clicked)
-        list_lay.addWidget(del_btn)
+        self.del_btn = QPushButton("🗑 Удалить выбранное")
+        self.del_btn.clicked.connect(self.on_delete_clicked)
+        list_lay.addWidget(self.del_btn)
 
         right.addWidget(self.list_container)
 
@@ -257,12 +257,12 @@ class ScheduleWidget(QWidget):
         form_lay.addRow("Аудитория:", self.room_field)
 
         btn_row = QHBoxLayout()
-        save_btn = QPushButton("✅ Сохранить")
-        save_btn.clicked.connect(self.on_save_clicked)
-        cancel_btn = QPushButton("❌ Отмена")
-        cancel_btn.clicked.connect(self.hide_form)
-        btn_row.addWidget(save_btn)
-        btn_row.addWidget(cancel_btn)
+        self.save_btn = QPushButton("✅ Сохранить")
+        self.save_btn.clicked.connect(self.on_save_clicked)
+        self.cancel_btn = QPushButton("❌ Отмена")
+        self.cancel_btn.clicked.connect(self.hide_form)
+        btn_row.addWidget(self.save_btn)
+        btn_row.addWidget(self.cancel_btn)
         form_lay.addRow("", btn_row)
 
         right.addWidget(self.form_container)

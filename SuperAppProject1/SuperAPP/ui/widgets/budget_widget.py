@@ -512,9 +512,9 @@ class BudgetWidget(QWidget):
         layout = self.tab_goals.layout()
 
         top = QHBoxLayout()
-        btn_add_goal = QPushButton("✚ Добавить цель")
-        btn_add_goal.clicked.connect(self.add_goal)
-        top.addWidget(btn_add_goal)
+        self.btn_add_goal = QPushButton("✚ Добавить цель")
+        self.btn_add_goal.clicked.connect(self.add_goal)
+        top.addWidget(self.btn_add_goal)
         top.addStretch()
         layout.addLayout(top)
 
