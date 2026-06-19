@@ -38,7 +38,7 @@ class PieChart(Canvas):
         self.draw_chart([])
 
     def draw_chart(self, distribution: list):
-        """distribution — список пар (звёзды, количество игр с такой оценкой)."""
+        """список пар (звёзды, количество игр с такой оценкой)."""
         self.ax.clear()
 
         filtered = [(stars, count) for stars, count in distribution if count > 0]
@@ -65,7 +65,7 @@ class PieChart(Canvas):
 
 
 class GameEditDialog(QDialog):
-    """Диалог добавления новой игры в каталог или редактирования существующей."""
+    """Диалог добавления новой или редактирования существующей."""
 
     def __init__(self, parent=None, game_data: dict = None):
         super().__init__(parent)
@@ -133,7 +133,7 @@ class GameStatsWidget(QWidget):
         self._build_ui()
         self.load_games()
 
-    # ------------------------------------------------------------------ UI
+    # UI
 
     def _build_ui(self):
         main_layout = QVBoxLayout(self)
@@ -233,8 +233,7 @@ class GameStatsWidget(QWidget):
         self.form_box.setEnabled(False)
         main_layout.addWidget(form_box, stretch=2)
 
-    # ------------------------------------------------------------------ Файлы
-
+    # Файлы
     def load_json(self, path: str, default):
         if not os.path.exists(path):
             return default
@@ -254,8 +253,7 @@ class GameStatsWidget(QWidget):
     def save_progress(self):
         self.save_json(data_path(PLAYER_PROGRESS_FILE), self.player_progress)
 
-    # ------------------------------------------------------------------ Таблица и диаграмма
-
+    # Таблица и диаграмма
     def load_games(self):
         """Перестраивает таблицу каталога и диаграмму оценок."""
         self.games_table.setRowCount(len(self.games_catalog))
@@ -287,8 +285,7 @@ class GameStatsWidget(QWidget):
         rows = self.games_table.selectionModel().selectedRows()
         return rows[0].row() if rows else None
 
-    # ------------------------------------------------------------------ Обработчики каталога
-
+    # Обработчики каталога
     def on_add_game_clicked(self):
         dialog = GameEditDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:

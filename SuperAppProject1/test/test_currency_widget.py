@@ -1,19 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-# ВАЖНО: изначально планировалось мокать QWebEngineView, чтобы избежать
-# возможной тяжести инициализации в headless/CI-среде. Но реальный
-# CurrencyWidget.__init__ передаёт self.plot_view в несколько мест, где
-# Qt на уровне C++ требует НАСТОЯЩИЙ QWidget/QObject, а не MagicMock:
-#   - Loader(self.plot_view) -> super().__init__(view) ждёт QObject
-#   - self.layout.addWidget(self.plot_view) -> ждёт QWidget
-# Подмена класса целиком на MagicMock ломает оба места с TypeError.
-# Простое СОЗДАНИЕ QWebEngineView само по себе не зависает и не требует
-# сети — тяжесть появляется только при реальной загрузке HTML/JS
-# (setHtml с большим контентом, сетевые ресурсы). Наши тесты не вызывают
-# setHtml вообще (test_parse_xml) или вызывают его с локальным графиком
-# без сети (test_fetch_data, через замоканный requests.get) — поэтому
-# реальный QWebEngineView создавать безопасно, мокать не нужно.
 from PyQt6.QtCore import QDate
 from SuperAppProject1.SuperAPP.ui.widgets.currency_widget import CurrencyWidget
 
@@ -67,8 +54,6 @@ class TestCurrencyParsing(unittest.TestCase):
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
-        # from_currency/to_currency по умолчанию RUB -> USD: запрос на
-        # USD реально уйдёт в requests.get (замоканный).
         widget.from_currency.setCurrentText('RUB')
         widget.to_currency.setCurrentText('USD')
 

@@ -7,7 +7,7 @@ from typing import List, Optional
 class HabitCheck:
     """Модель для хранения одной отметки о выполнении привычки."""
     def __init__(self, check_date: date, is_completed: bool):
-        self.check_date = check_date.isoformat()  # Сохраняем в формате 'YYYY-MM-DD'
+        self.check_date = check_date.isoformat()
         self.is_completed = is_completed
 
 class Habit:

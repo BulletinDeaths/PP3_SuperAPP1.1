@@ -5,9 +5,9 @@ import unittest
 from datetime import datetime
 from unittest.mock import patch
 
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtCore import Qt, QTime
 from PyQt6.QtTest import QTest
-from PyQt6.QtCore import Qt, QTime, QTimer
+from PyQt6.QtWidgets import QMessageBox
 
 from SuperAppProject1.SuperAPP.models.schedule.schedule_engine import ScheduleEngine, Lesson
 from SuperAppProject1.SuperAPP.models.schedule.storage import Storage
@@ -16,11 +16,7 @@ from SuperAppProject1.SuperAPP.ui.widgets.schedule_widget import ScheduleWidget
 
 class TestScheduleWidget(unittest.TestCase):
     def setUp(self):
-        # Storage.__init__ делает os.makedirs(...), а ScheduleEngine
-        # вызывает storage.save_data(...) при каждом create_lesson — то
-        # есть JSON реально пишется на диск. Используем отдельную
-        # временную папку для каждого теста, чтобы ничего не оставалось
-        # на диске после прогона тестов.
+
         self._tmp_dir = tempfile.mkdtemp()
         data_path = os.path.join(self._tmp_dir, "test_schedule.json")
 
@@ -37,8 +33,6 @@ class TestScheduleWidget(unittest.TestCase):
 
     def test_load_lessons(self):
         """Проверка загрузки занятий для дня."""
-        # Lesson ожидает start_time/end_time как строки "HH:MM"
-        # (см. schedule_engine.Lesson._normalise_time), а не объекты QTime.
         lesson_obj = Lesson(
             name="Test Lesson",
             day_of_week="Понедельник",
@@ -76,10 +70,6 @@ class TestScheduleWidget(unittest.TestCase):
 
     def test_countdown_logic(self):
         """Проверка логики обратного отсчёта."""
-        # countdown_label обновляется методом _update_countdown(),
-        # который подключён к QTimer с интервалом 1000мс — он НЕ
-        # вызывается автоматически из load_lessons_for_day(). Вызываем
-        # его явно, чтобы тест не зависел от реального ожидания таймера.
         now = datetime.now()
         today_dow_name = self.widget.DAY_MAP[now.isoweekday()]
 
@@ -104,10 +94,7 @@ class TestScheduleWidget(unittest.TestCase):
         self.engine.create_lesson(future_lesson)
         self.widget.load_lessons_for_day(today_dow_name)
         self.widget._update_countdown()
-        # "Active Now" может всё ещё идти, и _update_countdown сообщит
-        # про него первым, а не про "Следующая" — это ожидаемое
-        # поведение реального кода, не ошибка теста. Допускаем оба
-        # исхода.
+
         text = self.widget.countdown_label.text()
         self.assertTrue("Идёт" in text or "Следующая" in text)
 
@@ -127,9 +114,7 @@ class TestScheduleWidget(unittest.TestCase):
 
         stats = self.engine.get_stats()
         self.assertGreater(sum(stats.values()), 0)
-        # LoadChart — кастомный QWidget с собственным paintEvent, у него
-        # нет атрибута .figure (это не matplotlib canvas). Проверяем
-        # реальный публичный атрибут — внутренние данные диаграммы.
+        # Проверяем реальный публичный атрибут — внутренние данные диаграммы.
         self.assertEqual(len(self.widget.load_chart._data), 7)
 
 

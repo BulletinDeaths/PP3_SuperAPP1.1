@@ -1,15 +1,13 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from PyQt6.QtWidgets import QApplication, QMessageBox, QMessageBox
+from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QMessageBox
 
 from SuperAppProject1.SuperAPP.models.habit_tracker_model import HabitTrackerModel
 from SuperAppProject1.SuperAPP.ui.widgets.habit_tracker_widget import HabitTrackerWidget
 
-# Путь чисто символический — никакой реальный файл по нему не создаётся,
-# потому что save_to_file() модели замокана во всех тестах ниже.
 _FAKE_DATA_PATH = "fake/test_habits.json"
 
 
@@ -17,10 +15,6 @@ class TestHabitTrackerWidget(unittest.TestCase):
     def setUp(self):
         self.model = HabitTrackerModel(_FAKE_DATA_PATH)
 
-        # delete_habit() и mark_habit() внутри HabitTrackerWidget вызывают
-        # self.model.save_to_file() напрямую — без мока это писало бы
-        # настоящий JSON-файл на диск при каждом тесте. Подменяем метод
-        # на no-op заглушку: тест проверяет состояние модели в памяти.
         self._save_patch = patch.object(self.model, "save_to_file")
         self._save_patch.start()
 
@@ -61,9 +55,6 @@ class TestHabitTrackerWidget(unittest.TestCase):
         """Проверка экспорта и импорта через виджет."""
         self.test_add_habit()
 
-        # export_data() сразу открывает QFileDialog.getSaveFileName, и мы
-        # мокаем именно его, поэтому модального окна не возникает — клик
-        # по export_btn один раз и есть весь нужный пользовательский шаг.
         with patch(
             "SuperAppProject1.SuperAPP.ui.widgets.habit_tracker_widget.QFileDialog.getSaveFileName",
             return_value=("test.json", "JSON Files (*.json)"),
@@ -76,9 +67,7 @@ class TestHabitTrackerWidget(unittest.TestCase):
         self.model.habits.clear()
         self.assertEqual(len(self.model.habits), 0)
 
-        # import_data() читает файл через open() и вызывает
-        # model.import_from_json(json_string). Мокаем сам метод модели,
-        # чтобы не зависеть от реального содержимого замоканного open().
+        # Мокаем сам метод модели, чтобы не зависеть от реального содержимого замоканного open().
         with patch(
             "SuperAppProject1.SuperAPP.ui.widgets.habit_tracker_widget.QFileDialog.getOpenFileName",
             return_value=("test.json", "JSON Files (*.json)"),

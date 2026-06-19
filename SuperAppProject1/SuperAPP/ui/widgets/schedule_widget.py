@@ -348,7 +348,7 @@ class ScheduleWidget(QWidget):
         self.room_field.setText(d.get("room", ""))
 
     def on_save_clicked(self):
-        # Читаем время строго через QTime — никакого .text() с локалью
+        # Читаем время строго через QTime
         t_start = self.time_start_field.time()
         t_end   = self.time_end_field.time()
         start_str = t_start.toString("HH:mm")
@@ -436,7 +436,6 @@ class ScheduleWidget(QWidget):
                 f"</div></div>"
             )
 
-            # Находим глобальный индекс в self.engine.lessons
             lesson_dict = lesson.to_dict()
             global_idx = next(
                 (i for i, d in enumerate(self.engine.lessons)

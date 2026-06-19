@@ -13,12 +13,6 @@ from SuperAppProject1.SuperAPP.ui.widgets.game_stats_widget import GameStatsWidg
 
 class TestGameStatsWidget(unittest.TestCase):
     def setUp(self):
-        # GameStatsWidget читает/пишет каталог игр и прогресс через
-        # data_path(GAMES_CATALOG_FILE) / data_path(PLAYER_PROGRESS_FILE) —
-        # это реальные файлы приложения в SuperAPP/data/. Подменяем
-        # data_path на функцию, возвращающую путь во временной папке,
-        # созданной отдельно для каждого теста — это полностью изолирует
-        # тесты от данных пользователя и не оставляет файлов на диске.
         self._tmp_dir = tempfile.mkdtemp()
 
         def fake_data_path(filename):
@@ -63,9 +57,6 @@ class TestGameStatsWidget(unittest.TestCase):
     def test_edit_game(self):
         """Проверка редактирования игры."""
         self.test_add_game()
-        # games_table — QTableWidget с SelectionBehavior.SelectRows;
-        # _selected_row() читает selectionModel().selectedRows(), поэтому
-        # нужно реально выделить строку через selectRow().
         self.widget.games_table.selectRow(0)
 
         def fill_edit_dialog():
@@ -101,10 +92,6 @@ class TestGameStatsWidget(unittest.TestCase):
         """Проверка сохранения прогресса (оценки и достижений)."""
         self.test_add_game()
 
-        # selectRow() не вызывает cellClicked сам по себе, а
-        # on_game_selected (заполняет форму и включает form_box)
-        # подключён именно к cellClicked — вызываем его явно, как это
-        # сделал бы реальный клик по ячейке.
         self.widget.games_table.selectRow(0)
         self.widget.on_game_selected(0, 0)
 
@@ -112,8 +99,7 @@ class TestGameStatsWidget(unittest.TestCase):
         self.widget.checkboxes[0].setChecked(True)
         self.widget.review_textarea.setPlainText("Great game!")
 
-        # on_save_clicked() в конце вызывает QMessageBox.information(),
-        # блокирующий выполнение до закрытия — закрываем через QTimer.
+        # on_save_clicked() в конце вызывает QMessageBox.information(), блокирующий выполнение до закрытия — закрываем через QTimer.
         def confirm_saved():
             dlg = QApplication.activeModalWidget()
             if dlg is not None:

@@ -5,10 +5,6 @@ from unittest.mock import patch, mock_open
 
 from SuperAppProject1.SuperAPP.models.habit_tracker_model import HabitTrackerModel, Habit
 
-# Путь чисто символический — реальный файл по этому пути никогда не
-# создаётся, потому что все файловые операции (open, os.makedirs,
-# os.path.exists) ниже замоканы. Это нужно, чтобы тесты не оставляли
-# JSON-файлы на диске и не зависели от файловой системы вообще.
 _FAKE_DATA_PATH = "fake/test_habits.json"
 
 
@@ -34,14 +30,6 @@ class TestHabitLogic(unittest.TestCase):
     def test_weekly_series(self):
         """
         Проверка серии при добавлении отметок раз в неделю.
-
-        ВАЖНО: метод _recalculate_streaks в habit_tracker_model.py считает
-        streak по ПОСЛЕДОВАТЕЛЬНЫМ отметкам (всем подряд, начиная с самой
-        последней), а не по календарным дням — он не проверяет разницу
-        дат между соседними отметками. Поэтому даже отметки "раз в неделю"
-        дадут current_streak == 3, если все три отметки is_completed=True.
-        Если в вашей логике "недельная серия" должна означать что-то иное,
-        доработка нужна в самой модели HabitTrackerModel, а не в тесте.
         """
         habit = Habit("Weekly Goal")
         habit.add_check(date.today(), True)
@@ -52,10 +40,6 @@ class TestHabitLogic(unittest.TestCase):
     def test_export_import(self):
         """
         Проверка экспорта и импорта JSON.
-
-        export_to_json()/import_from_json() работают только со строками
-        в памяти (json.dumps/json.loads) и не трогают диск — поэтому
-        здесь файловые моки не нужны.
         """
         self.model.add_habit("Exportable Habit")
         exported = self.model.export_to_json()
@@ -69,8 +53,8 @@ class TestHabitLogic(unittest.TestCase):
 class TestFileOperations(unittest.TestCase):
     """
     Проверяет save_to_file()/load_from_file() БЕЗ реальной записи на
-    диск: os.makedirs, open() и os.path.exists замоканы, а данные между
-    "сохранением" и "загрузкой" передаются через переменную в памяти,
+    диск: а данные между "сохранением" и "загрузкой"
+    передаются через переменную в памяти,
     имитирующую содержимое файла.
     """
 
@@ -79,8 +63,6 @@ class TestFileOperations(unittest.TestCase):
         model = HabitTrackerModel(_FAKE_DATA_PATH)
         model.add_habit("Test Habit")
 
-        # save_to_file() сначала вызывает os.makedirs(...), затем
-        # open(path, 'w', ...) и пишет в него через json.dump(...).
         with patch("SuperAppProject1.SuperAPP.models.habit_tracker_model.os.makedirs"), \
              patch("builtins.open", mock_open()) as mocked_open:
             model.save_to_file()
@@ -106,8 +88,6 @@ class TestFileOperations(unittest.TestCase):
                 ]
             }, ensure_ascii=False, indent=4)
 
-        # load_from_file() сначала проверяет os.path.exists(...), затем
-        # открывает файл на чтение и парсит JSON через json.load(...).
         with patch("SuperAppProject1.SuperAPP.models.habit_tracker_model.os.path.exists", return_value=True), \
              patch("builtins.open", mock_open(read_data=written)):
             loaded_model = HabitTrackerModel(_FAKE_DATA_PATH)
